@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
-import desktopGrid from "../assets/grass-grid-desktop.json";
-import mobileGrid from "../assets/grass-grid-mobile.json";
 import sunGrid from "../assets/sun-grid.json";
+import WindGrass from "./WindGrass.jsx";
 
 /*
   AsciiField: draws a converter grid (characters + per-cell palette
@@ -26,6 +25,7 @@ export default function AsciiField({ opacity = 0.55, variant = "grass", anchor =
   const ref = useRef(null);
 
   useEffect(() => {
+    if (variant === "grass") return undefined; // WindGrass renders it
     const canvas = ref.current;
     if (!canvas) return;
     const parent = canvas.parentElement;
@@ -35,8 +35,7 @@ export default function AsciiField({ opacity = 0.55, variant = "grass", anchor =
       const w = parent.clientWidth;
       const h = parent.clientHeight;
       if (!w || !h) return;
-      const grid =
-        variant === "sun" ? sunGrid : w < 720 ? mobileGrid : desktopGrid;
+      const grid = sunGrid;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
@@ -46,49 +45,6 @@ export default function AsciiField({ opacity = 0.55, variant = "grass", anchor =
       ctx.scale(dpr, dpr);
       ctx.fillStyle = "#0a0a09";
       ctx.fillRect(0, 0, w, h);
-
-      if (variant === "grass") {
-        // Width sets the natural glyph scale. Repeat the grid down
-        // tall stages instead of enlarging glyphs to cover height.
-        const u = w / (grid.cols * CELL_ASPECT);
-        const tileW = w;
-        const tileH = grid.rows * u;
-        const tile = document.createElement("canvas");
-        tile.width = Math.max(1, Math.round(tileW * dpr));
-        tile.height = Math.max(1, Math.round(tileH * dpr));
-        const tileCtx = tile.getContext("2d");
-        tileCtx.scale(dpr, dpr);
-        tileCtx.font = `${u}px "Courier New", Courier, monospace`;
-        tileCtx.textBaseline = "top";
-        let tileColor = null;
-        for (let y = 0; y < grid.rows; y++) {
-          const line = grid.lines[y];
-          const rowCells = grid.cells[y];
-          for (let x = 0; x < grid.cols; x++) {
-            const ci = rowCells[x];
-            if (ci < 0) continue;
-            const color = grid.palette[ci];
-            if (color !== tileColor) {
-              tileCtx.fillStyle = color;
-              tileColor = color;
-            }
-            tileCtx.fillText(line[x], x * CELL_ASPECT * u, y * u);
-          }
-        }
-
-        for (let tileY = 0, tileIndex = 0; tileY < h; tileY += tileH, tileIndex++) {
-          if (tileIndex % 2 === 0) {
-            ctx.drawImage(tile, 0, tileY, tileW, tileH);
-          } else {
-            ctx.save();
-            ctx.translate(0, tileY + tileH);
-            ctx.scale(1, -1);
-            ctx.drawImage(tile, 0, 0, tileW, tileH);
-            ctx.restore();
-          }
-        }
-        return;
-      }
 
       // cover: pick the cell height that covers both dimensions
       const u = Math.max(w / (grid.cols * CELL_ASPECT), h / grid.rows);
@@ -132,6 +88,7 @@ export default function AsciiField({ opacity = 0.55, variant = "grass", anchor =
     };
   }, [variant, anchor]);
 
+  if (variant === "grass") return <WindGrass opacity={opacity} />;
   return (
     <canvas
       ref={ref}
