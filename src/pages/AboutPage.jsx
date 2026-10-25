@@ -1,4 +1,5 @@
 import AsciiField from "../components/AsciiField";
+import ErrorBoundary from "../components/ErrorBoundary.jsx";
 
 /*
   About copy: Nick's approved draft (Oct 25, 2026), professional,
@@ -18,7 +19,9 @@ export default function AboutPage() {
   return (
     <main className="page about-page">
       <div className="about-stage">
-        <AsciiField opacity={0.6} />
+        <ErrorBoundary>
+          <AsciiField opacity={0.6} />
+        </ErrorBoundary>
         <div className="about-stage-content">
           <h1>About</h1>
           <div className="about-panel deco-corners deco-corners--quiet">

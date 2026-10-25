@@ -133,7 +133,7 @@ export default function WindGrass({ opacity = 0.6 }) {
       for (const cell of cells) {
         stamp(bg, sprite(cell.ch, cell.col), cell.x, cell.y, cell.flip);
       }
-      ctx.setTransform(1, 0, 0, 1);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(baseImg, 0, 0);
 
@@ -190,7 +190,7 @@ export default function WindGrass({ opacity = 0.6 }) {
     const drawWind = (now) => {
       if (!baseImg) return;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
-      ctx.setTransform(1, 0, 0, 1);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(baseImg, 0, 0);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import Hero from "./components/Hero.jsx";
 import ProjectCard from "./components/ProjectCard.jsx";
 import AsciiField from "./components/AsciiField.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import ProjectPage from "./pages/ProjectPage.jsx";
 import AboutPage from "./pages/AboutPage.jsx";
 import { projects, getProject } from "./data/projects.js";
@@ -76,10 +77,14 @@ function Landing({ onNavigate }) {
   return (
     <>
       <div className="sun-backdrop" aria-hidden="true">
-        <AsciiField variant="sun" opacity={0.5} />
+        <ErrorBoundary>
+          <AsciiField variant="sun" opacity={0.5} />
+        </ErrorBoundary>
       </div>
       <main className="landing-main">
-        <Hero onNavigate={onNavigate} />
+        <ErrorBoundary>
+          <Hero onNavigate={onNavigate} />
+        </ErrorBoundary>
         <section className="cards" id="projects">
         {projects.map((p) => (
           <ProjectCard key={p.slug} project={p} onNavigate={onNavigate} />
