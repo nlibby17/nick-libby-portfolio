@@ -1,111 +1,454 @@
+/*
+  Design tokens: defined once, used everywhere.
+  Art deco is the philosophy: geometry, order, symmetry, restraint.
+  Palette: black base, ivory text, gold accent. Each project page
+  may carry ONE signature splash color (see projects data file).
+  Angles over rounded inside this project: border-radius stays 0.
+*/
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --bg: #0a0a09;
+  --panel: #121211;
+  --panel-edge: #2a2a26;
+  --ink: #f2ede1;
+  --ink-dim: #b3ac9d;
+  --ink-faint: #7d7769;
+  --gold: #c9a227;
+  --gold-bright: #e8c95d;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --splash-dunkin: #ff671f;
+  --splash-stock: #35c759;
+  --splash-portal: #00a2ff;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --font-display: "Cinzel", "Times New Roman", serif;
+  --font-mono: "Cutive Mono", "Courier New", monospace;
+  --font-body: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  --measure: 65ch;
+  --page-width: 72rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+* {
+  box-sizing: border-box;
+}
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
+a {
+  color: var(--gold-bright);
+}
+
+/* ---------- shared pieces ---------- */
+
+.ornament {
+  color: var(--gold);
+  font-family: var(--font-mono);
+  letter-spacing: 0.6em;
   text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+  user-select: none;
+}
+
+.rule {
+  border: none;
+  border-top: 1px solid var(--gold);
+  width: 7rem;
+  margin: 1.25rem auto;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.65rem 1.6rem;
+  border: 1px solid var(--gold);
+  border-radius: 0;
+  color: var(--gold-bright);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--gold);
+  color: #0a0a09;
+}
+
+.btn-solid {
+  background: var(--gold);
+  color: #0a0a09;
+}
+
+.btn-solid:hover {
+  background: var(--gold-bright);
+}
+
+/* ---------- nav ---------- */
+
+.site-nav {
   display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 1.1rem 2rem 0.9rem;
+  border-bottom: 1px solid var(--panel-edge);
+  max-width: var(--page-width);
+  margin: 0 auto;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+.site-nav .brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 1.05rem;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+.site-nav .links {
+  display: flex;
+  gap: 1.75rem;
+}
+
+.site-nav .links a {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  text-decoration: none;
+}
+
+.site-nav .links a:hover {
+  color: var(--gold-bright);
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  text-align: center;
+  padding: 3.5rem 1.5rem 2.5rem;
+  max-width: var(--page-width);
+  margin: 0 auto;
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  letter-spacing: 0.14em;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.hero .role {
+  font-family: var(--font-mono);
+  color: var(--gold-bright);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-size: clamp(0.8rem, 2vw, 1rem);
+  margin: 0.5rem 0 0;
+}
+
+.hero .pitch {
+  font-size: clamp(1.15rem, 2.6vw, 1.5rem);
+  color: var(--ink);
+  margin: 1.4rem auto 0;
+  max-width: 34ch;
+}
+
+.hero .cup {
+  font-family: var(--font-mono);
+  font-size: clamp(0.55rem, 1.6vw, 0.85rem);
+  line-height: 1.25;
+  color: var(--ink);
+  margin: 2rem auto 0.5rem;
+  display: inline-block;
+  text-align: left;
+  animation: cup-sway 7s ease-in-out infinite alternate;
+}
+
+@keyframes cup-sway {
+  from {
+    transform: rotate(-0.7deg);
+  }
+  to {
+    transform: rotate(0.7deg);
   }
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
+
+@media (prefers-reduced-motion: reduce) {
+  .hero .cup {
+    animation: none;
   }
 }
-p {
+
+.hero .cta {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+/* ---------- project cards ---------- */
+
+.cards {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 1rem 2rem 3rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-top: 3px solid var(--splash, var(--gold));
+  border-radius: 0;
+  padding: 1.6rem 1.8rem;
+  text-decoration: none;
+  color: var(--ink);
+  display: block;
+}
+
+.card:hover {
+  border-color: var(--splash, var(--gold));
+}
+
+.card-wide {
+  grid-column: 1 / -1;
+}
+
+.card h3 {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.4rem;
+}
+
+.card .tagline {
+  color: var(--ink-dim);
+  margin: 0 0 1rem;
+}
+
+.card .status {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--splash, var(--gold));
+  border: 1px solid var(--splash, var(--gold));
+  padding: 0.15rem 0.6rem;
+  margin-bottom: 0.9rem;
+}
+
+.stat-row {
+  display: flex;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.stat .value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--splash, var(--gold));
+  display: block;
+  line-height: 1.1;
+}
+
+.stat .label {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.ticker {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--ink-dim);
+}
+
+.ticker .tick {
+  color: var(--splash, var(--gold));
+}
+
+.log-lines {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--ink-dim);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.log-lines li {
+  margin: 0.3rem 0;
+}
+
+.log-lines .tick {
+  color: var(--splash, var(--gold));
+}
+
+/* ---------- about strip + footer ---------- */
+
+.about-strip {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 1rem 1.5rem 3rem;
+  text-align: center;
+  color: var(--ink-dim);
+  font-size: 1.1rem;
+}
+
+.about-strip a {
+  font-family: var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.site-footer {
+  border-top: 1px solid var(--panel-edge);
+  padding: 2.2rem 1.5rem 2.6rem;
+  text-align: center;
+  max-width: var(--page-width);
+  margin: 0 auto;
+}
+
+.site-footer .links {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  margin: 0.8rem 0;
+  flex-wrap: wrap;
+}
+
+.site-footer .links a {
+  font-family: var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.site-footer .fine {
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+}
+
+/* ---------- inner pages ---------- */
+
+.page {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 2.8rem 2rem 3.5rem;
+}
+
+.page .kicker {
+  font-family: var(--font-mono);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  color: var(--splash, var(--gold));
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+.page h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4.5vw, 3rem);
+  letter-spacing: 0.08em;
+  margin: 0.5rem 0 0.75rem;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+.page .lede {
+  color: var(--ink-dim);
+  font-size: 1.15rem;
+  max-width: 60ch;
+}
+
+.page section {
+  margin-top: 2.4rem;
+  max-width: 68ch;
+}
+
+.page section h2 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.1em;
+  color: var(--gold-bright);
+  border-bottom: 1px solid var(--panel-edge);
+  padding-bottom: 0.4rem;
+}
+
+.page .shot {
+  width: 100%;
+  border: 1px solid var(--panel-edge);
+  display: block;
+  margin-top: 1rem;
+}
+
+.page .caption {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+  margin-top: 0.5rem;
+}
+
+.page .backlink {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+/* About page: Cutive Mono, larger, per Nick's direction. */
+.about-copy {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  line-height: 1.8;
+  max-width: var(--measure);
+}
+
+.about-copy p {
+  margin: 1.2rem 0;
+}
+
+/* ---------- small screens ---------- */
+
+@media (max-width: 720px) {
+  .cards {
+    grid-template-columns: 1fr;
+    padding: 1rem 1.25rem 2.5rem;
+  }
+
+  .site-nav {
+    padding: 1rem 1.25rem 0.8rem;
+  }
+
+  .page {
+    padding: 2rem 1.25rem 3rem;
+  }
+
+  .stat-row {
+    gap: 1.5rem;
+  }
 }

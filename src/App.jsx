@@ -1,122 +1,131 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useCallback, useEffect, useState } from "react";
+import Hero from "./components/Hero.jsx";
+import ProjectCard from "./components/ProjectCard.jsx";
+import ProjectPage from "./pages/ProjectPage.jsx";
+import AboutPage from "./pages/AboutPage.jsx";
+import { projects, getProject } from "./data/projects.js";
 
-function App() {
-  const [count, setCount] = useState(0)
+function useRoute() {
+  const [path, setPath] = useState(window.location.pathname);
+  useEffect(() => {
+    const onPop = () => setPath(window.location.pathname);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  const navigate = useCallback((to) => {
+    window.history.pushState({}, "", to);
+    setPath(to);
+    window.scrollTo(0, 0);
+  }, []);
+  return [path, navigate];
+}
+
+function Nav({ onNavigate }) {
+  const go = (to) => (e) => {
+    e.preventDefault();
+    onNavigate(to);
+  };
+  return (
+    <nav className="site-nav">
+      <a className="brand" href="/" onClick={go("/")}>
+        NICK LIBBY
+      </a>
+      <div className="links">
+        <a href="/" onClick={go("/")}>
+          Home
+        </a>
+        <a href="/about" onClick={go("/about")}>
+          About
+        </a>
+        <a
+          href="https://github.com/nlibby17"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub
+        </a>
+      </div>
+    </nav>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="site-footer" id="contact">
+      <p className="ornament" aria-hidden="true">
+        ◆ ◆ ◆
+      </p>
+      <div className="links">
+        <a href="https://github.com/nlibby17" target="_blank" rel="noreferrer">
+          GitHub
+        </a>
+        <a
+          href="https://www.linkedin.com/in/nicholas-libby-485aba162"
+          target="_blank"
+          rel="noreferrer"
+        >
+          LinkedIn
+        </a>
+      </div>
+      <p className="fine">Nick Libby · Marlborough, Massachusetts</p>
+    </footer>
+  );
+}
+
+function Landing({ onNavigate }) {
+  return (
+    <>
+      <Hero />
+      <div className="ornament" aria-hidden="true">
+        ─ ◆ ─
+      </div>
+      <section className="cards" id="projects">
+        {projects.map((p) => (
+          <ProjectCard key={p.slug} project={p} onNavigate={onNavigate} />
+        ))}
+      </section>
+      <section className="about-strip">
+        <p>
+          Data analytics student at SNHU, working in Python, SQL, and Excel.
+          The work I enjoy most starts with a messy dataset and a real
+          question.
+        </p>
+        <a
+          href="/about"
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigate("/about");
+          }}
+        >
+          More about me →
+        </a>
+      </section>
+    </>
+  );
+}
+
+export default function App() {
+  const [path, navigate] = useRoute();
+
+  let main;
+  if (path === "/about") {
+    main = <AboutPage />;
+  } else if (path.startsWith("/projects/")) {
+    const project = getProject(path.slice("/projects/".length));
+    main = project ? (
+      <ProjectPage project={project} onNavigate={navigate} />
+    ) : (
+      <Landing onNavigate={navigate} />
+    );
+  } else {
+    main = <Landing onNavigate={navigate} />;
+  }
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      <Nav onNavigate={navigate} />
+      {main}
+      <Footer />
     </>
-  )
+  );
 }
-
-export default App
