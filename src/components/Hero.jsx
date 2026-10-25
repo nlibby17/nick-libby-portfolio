@@ -1,4 +1,4 @@
-import AsciiField from "./AsciiField";
+import CupCanvas from "./CupCanvas";
 
 /*
   Hero order per Nick's direction (Oct 25, 2026): ornament,
@@ -51,7 +51,7 @@ export default function Hero({ onNavigate }) {
         role="img"
         aria-label="ASCII art of an iced coffee cup, tilted, with a straw"
       >
-        <AsciiField variant="cup" opacity={1} />
+        <CupCanvas />
       </div>
     </header>
   );
