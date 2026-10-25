@@ -4,28 +4,43 @@ import { COLS, ROWS, renderFrame } from "../lib/cupGeometry.js";
 import { spinState } from "../lib/spinState.js";
 
 /*
-  WarpedSunField: the homepage sun backdrop, deforming around
-  the hero cup. Design settled with Nick, Oct 25, 2026:
-  - Flow-around plus a touch of lens dimple: samples are pushed
-    away from the cup's silhouette, with a slight inward pinch
-    very close in. No swirl (killed; it read as noise).
-  - Pose-coupled: the silhouette comes from the cup renderer's
-    own hit mask at the live spin phase, so the bend reshapes
-    as the cup turns.
-  - Tight reach: influence ends 25 percent of the cup's width
-    beyond the silhouette.
-  - Strength gradient: full at the silhouette's edge, fading
-    smoothly to zero at the reach boundary.
-  - Order preserved: the pattern is only ever resampled from
-    smoothly displaced positions, never scrambled.
+  WarpedSunField: the homepage sun backdrop, gravitationally
+  lensed by the hero cup. Design settled with Nick, Oct 25, 2026:
+  - The lens is radial around the cup's center of mass, not a
+    push along the silhouette. Screen points sample the field
+    from closer to the center, so the pattern compresses into
+    arcs near the cup: the black-hole signature.
+  - The strength curve is steep near the edge (cubic in the
+    normalized distance), polite farther out, plus a faint long
+    tail so distant rays still acknowledge the mass.
+  - Where the lensed source would fall inside the cup, the cell
+    is left dark: a moat. Where it lands just outside the cup,
+    the character is brightened: a photon ring.
+  - The silhouette (edge, moat, ring) comes from the cup
+    renderer's own hit mask at the live spin phase, so the lens
+    furniture follows the pose while the lens itself stays
+    anchored to the center of mass.
+  - No swirl, no accretion flow: the field is a fixed texture
+    under a lens, so nothing is eaten and nothing needs
+    respawning. Nick's call, Oct 25, 2026.
   Implementation: the pristine field is rendered once to an
   offscreen canvas and blitted each tick; only cells inside
-  the cup's neighborhood are redrawn, warped, over it.
+  the cup's neighborhood are redrawn, lensed, over it.
 */
 const CELL_ASPECT = 0.6;
-const PUSH = 46; // px of outward deflection before the lens pinch
-const PINCH = 12; // px of inward lens pinch, closest range only
+const CORE_DEFLECT = 90; // px of inward lens pull at the edge
+const TAIL_DEFLECT = 6; // px of pull at the core/tail boundary
+const RING_WIDTH = 10; // px of source distance that reads as the ring
 const SDF_RES = 6; // px per distance-field cell
+
+function brighten(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const mix = (c, t) => Math.round(c + (t - c) * 0.55);
+  return `rgb(${mix(r, 255)},${mix(g, 237)},${mix(b, 176)})`;
+}
 
 export default function WarpedSunField({ opacity = 0.5 }) {
   const ref = useRef(null);
@@ -101,7 +116,7 @@ export default function WarpedSunField({ opacity = 0.5 }) {
       const stage = document.querySelector(".cup-stage");
       if (!stage) return;
       const rect = stage.getBoundingClientRect();
-      if (rect.bottom < -140 || rect.top > ph + 140 || rect.width < 10) return;
+      if (rect.bottom < -340 || rect.top > ph + 340 || rect.width < 10) return;
 
       const phase = spinState.phase;
       const frame =
@@ -110,11 +125,14 @@ export default function WarpedSunField({ opacity = 0.5 }) {
           : { phase, ...renderFrame(phase) };
       const hits = frame.hits;
 
-      const reach = rect.width * 0.25;
-      const x0 = Math.max(0, rect.left - reach - 12);
-      const y0 = Math.max(0, rect.top - reach - 12);
-      const x1 = Math.min(pw, rect.right + reach + 12);
-      const y1 = Math.min(ph, rect.bottom + reach + 12);
+      const coreReach = rect.width * 0.25;
+      const tailReach = rect.width * 0.7;
+      const comX = rect.left + rect.width / 2;
+      const comY = rect.top + rect.height / 2;
+      const x0 = Math.max(0, rect.left - tailReach - 12);
+      const y0 = Math.max(0, rect.top - tailReach - 12);
+      const x1 = Math.min(pw, rect.right + tailReach + 12);
+      const y1 = Math.min(ph, rect.bottom + tailReach + 12);
       const gw = Math.max(2, Math.ceil((x1 - x0) / SDF_RES));
       const gh = Math.max(2, Math.ceil((y1 - y0) / SDF_RES));
       const INF = 1e6;
@@ -174,29 +192,38 @@ export default function WarpedSunField({ opacity = 0.5 }) {
           const sj = Math.min(gh - 1, Math.max(0, Math.floor((cy - y0) / SDF_RES)));
           const k = sj * gw + si;
           const d = dist[k];
-          if (d >= reach || d < 0.5) continue;
-          const gxGrad =
-            dist[sj * gw + Math.min(gw - 1, si + 1)] -
-            dist[sj * gw + Math.max(0, si - 1)];
-          const gyGrad =
-            dist[Math.min(gh - 1, sj + 1) * gw + si] -
-            dist[Math.max(0, sj - 1) * gw + si];
-          const gl = Math.hypot(gxGrad, gyGrad);
-          if (gl < 1e-6) continue;
-          const nx = gxGrad / gl;
-          const ny = gyGrad / gl;
-          const g = (1 - d / reach) ** 1.25;
-          const off = PUSH * g - PINCH * g * g;
-          const sx = cx + nx * off;
-          const sy = cy + ny * off;
-          const sgx = Math.round((sx - ox) / cellW);
-          const sgy = Math.round((sy - oy) / u);
+          if (d >= tailReach || d < 0.5) continue;
+          // Radial lens around the center of mass: sample the
+          // field from closer to the center than the screen
+          // point, steeply near the edge, faintly in the tail.
+          const vx = cx - comX;
+          const vy = cy - comY;
+          const r = Math.hypot(vx, vy);
+          if (r < 1) continue;
+          let defl;
+          if (d <= coreReach) {
+            const t = 1 - d / coreReach;
+            defl = CORE_DEFLECT * t ** 3;
+          } else {
+            const t = 1 - (d - coreReach) / (tailReach - coreReach);
+            defl = TAIL_DEFLECT * t * t;
+          }
+          const sx = cx - (vx / r) * defl;
+          const sy = cy - (vy / r) * defl;
+          const ssi = Math.min(gw - 1, Math.max(0, Math.floor((sx - x0) / SDF_RES)));
+          const ssj = Math.min(gh - 1, Math.max(0, Math.floor((sy - y0) / SDF_RES)));
+          const ds = dist[ssj * gw + ssi];
           ctx.fillStyle = "#0a0a09";
           ctx.fillRect(px, py, cellW + 0.75, u + 0.75);
+          last = null;
+          if (ds <= 0.5) continue; // moat: the lens ate this light
+          const sgx = Math.round((sx - ox) / cellW);
+          const sgy = Math.round((sy - oy) / u);
           if (sgx < 0 || sgx >= grid.cols || sgy < 0 || sgy >= grid.rows) continue;
           const ci = grid.cells[sgy][sgx];
           if (ci < 0) continue;
-          const color = grid.palette[ci];
+          let color = grid.palette[ci];
+          if (ds <= RING_WIDTH) color = brighten(color);
           if (color !== last) {
             ctx.fillStyle = color;
             last = color;

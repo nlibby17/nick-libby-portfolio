@@ -36,7 +36,7 @@ export const ROWS = 83;
 export const CELL_ASPECT = 0.6;
 export const PLANE_W = 3.95;
 export const PLANE_H = 5.63;
-export const SPIN_MS = 16000;
+export const SPIN_MS = 8000;
 export const RAMP = " .·:;+*x%#@";
 export const IVORY = [0.95, 0.925, 0.87];
 
