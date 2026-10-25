@@ -65,10 +65,10 @@ export const projects = [
         body: "Results open in a React dashboard with five views: Home, Top Candidates, Stock Comparison, Research, and Advanced. Reports are stored in local SQLite history, so results stay reproducible and comparable over time, and any ranking can be downloaded as a CSV.",
         images: [
           {
-            src: "/images/stock-app/dashboard-overview.jpg",
-            alt: "Stock Research Assistant dashboard home view with report status, navigation cards, sector leaders, and market overview",
+            src: "/images/stock-app/dashboard-stock-comparison.jpg",
+            alt: "Stock Comparison view with two stocks side by side, their total scores, and a factor score bar chart",
             caption:
-              "Interface captured October 13, 2026, from a saved report. An interface example, not current market prices.",
+              "The Stock Comparison view: two candidates side by side across all five factors. Interface captured October 13, 2026, from a saved report. An interface example, not current market prices.",
           },
           {
             src: "/images/stock-app/dashboard-research-summary.jpg",

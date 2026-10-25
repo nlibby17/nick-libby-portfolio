@@ -2,7 +2,7 @@ export default function ProjectCard({ project, onNavigate }) {
   const href = `/projects/${project.slug}`;
   return (
     <a
-      className={`card${project.wide ? " card-wide" : ""}`}
+      className={`card deco-corners${project.featured ? " deco-corners--strong" : ""}${project.wide ? " card-wide" : ""}`}
       style={{ "--splash": project.splash }}
       href={href}
       onClick={(e) => {

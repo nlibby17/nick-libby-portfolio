@@ -20,9 +20,8 @@
   --splash-stock: #35c759;
   --splash-portal: #00a2ff;
 
-  --font-display: "Cinzel", "Times New Roman", serif;
   --font-mono: "Cutive Mono", "Courier New", monospace;
-  --font-body: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-art: "IBM Plex Mono", "DejaVu Sans Mono", monospace;
 
   --measure: 65ch;
   --page-width: 72rem;
@@ -40,7 +39,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-body);
+  font-family: var(--font-mono);
   font-size: 1rem;
   line-height: 1.6;
 }
@@ -108,7 +107,7 @@ a {
 }
 
 .site-nav .brand {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-weight: 700;
   letter-spacing: 0.22em;
   color: var(--ink);
@@ -144,7 +143,7 @@ a {
 }
 
 .hero h1 {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-weight: 700;
   font-size: clamp(2.4rem, 6vw, 4.2rem);
   letter-spacing: 0.14em;
@@ -161,14 +160,20 @@ a {
 }
 
 .hero .pitch {
-  font-size: clamp(1.15rem, 2.6vw, 1.5rem);
+  font-family: var(--font-mono);
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  letter-spacing: 0.05em;
   color: var(--ink);
-  margin: 1.4rem auto 0;
-  max-width: 34ch;
+  margin: 1.1rem auto 0;
+  max-width: 40ch;
+}
+
+.hero .pitch-frame {
+  margin-top: 1.8rem;
 }
 
 .hero .cup {
-  font-family: var(--font-mono);
+  font-family: var(--font-art);
   font-size: clamp(0.55rem, 1.6vw, 0.85rem);
   line-height: 1.25;
   color: var(--ink);
@@ -232,7 +237,7 @@ a {
 }
 
 .card h3 {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 1.45rem;
   letter-spacing: 0.06em;
   margin: 0 0 0.4rem;
@@ -263,7 +268,7 @@ a {
 }
 
 .stat .value {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 2rem;
   font-weight: 700;
   color: var(--splash, var(--gold));
@@ -372,7 +377,7 @@ a {
 }
 
 .page h1 {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: clamp(1.9rem, 4.5vw, 3rem);
   letter-spacing: 0.08em;
   margin: 0.5rem 0 0.75rem;
@@ -390,7 +395,7 @@ a {
 }
 
 .page section h2 {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 1.3rem;
   letter-spacing: 0.1em;
   color: var(--gold-bright);
@@ -430,6 +435,52 @@ a {
 
 .about-copy p {
   margin: 1.2rem 0;
+}
+
+/* About page: centered layout. The converted grass field
+   (AsciiField canvas) fills the stage behind the text card and
+   shows around its borders; copy sits on a solid panel. */
+.about-page {
+  text-align: center;
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.about-stage {
+  position: relative;
+  overflow: hidden;
+  padding: 3.5rem 1.25rem 4rem;
+}
+
+.ascii-field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.about-stage-content {
+  position: relative;
+  z-index: 1;
+}
+
+.about-stage-content h1 {
+  margin-top: 0.2rem;
+}
+
+.about-panel {
+  position: relative;
+  background: rgba(10, 10, 9, 0.96);
+  border: 1px solid var(--panel-edge);
+  max-width: 48rem;
+  margin: 2rem auto 0;
+  padding: 2.6rem 2.4rem;
+}
+
+.about-panel .about-copy {
+  margin: 0 auto;
+  text-align: center;
 }
 
 /* ---------- small screens ---------- */

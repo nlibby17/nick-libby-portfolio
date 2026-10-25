@@ -76,9 +76,7 @@ function Landing({ onNavigate }) {
   return (
     <>
       <Hero />
-      <div className="ornament" aria-hidden="true">
-        ─ ◆ ─
-      </div>
+      <hr className="deco-divider deco-divider--wide" aria-hidden="true" />
       <section className="cards" id="projects">
         {projects.map((p) => (
           <ProjectCard key={p.slug} project={p} onNavigate={onNavigate} />
@@ -108,15 +106,19 @@ export default function App() {
   const [path, navigate] = useRoute();
 
   let main;
+  let inner = false;
+  let about = false;
   if (path === "/about") {
     main = <AboutPage />;
+    about = true;
   } else if (path.startsWith("/projects/")) {
     const project = getProject(path.slice("/projects/".length));
-    main = project ? (
-      <ProjectPage project={project} onNavigate={navigate} />
-    ) : (
-      <Landing onNavigate={navigate} />
-    );
+    if (project) {
+      main = <ProjectPage project={project} onNavigate={navigate} />;
+      inner = true;
+    } else {
+      main = <Landing onNavigate={navigate} />;
+    }
   } else {
     main = <Landing onNavigate={navigate} />;
   }
@@ -124,7 +126,13 @@ export default function App() {
   return (
     <>
       <Nav onNavigate={navigate} />
-      {main}
+      {inner ? (
+        <div className="deco-page-bg">{main}</div>
+      ) : about ? (
+        <div>{main}</div>
+      ) : (
+        main
+      )}
       <Footer />
     </>
   );

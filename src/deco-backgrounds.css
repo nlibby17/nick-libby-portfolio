@@ -1,0 +1,189 @@
+/*
+  deco-backgrounds.css
+  Art deco background system for nick-libby-portfolio.
+  CSS + inline SVG data URIs only. No images, no JS.
+
+  Philosophy rules baked in: angular geometry only (no curves, no
+  border-radius), gold (#c9a227) on black (#0a0a09), and restraint:
+  every large-area piece sits between 0.05 and 0.14 effective opacity
+  so body text stays perfectly readable.
+*/
+
+:root {
+  --deco-gold: #c9a227;
+  --deco-bg: #0a0a09;
+  --deco-ink: #f2ede1;
+  /* Sunburst layer strength (SVG strokes are ~0.55 alpha at source). */
+  --deco-sunburst-opacity: 0.22;
+  /* Texture layer strength (SVG strokes are 0.5 alpha at source),
+     so 0.11 here lands at ~0.055 effective. Whisper level. */
+  --deco-texture-opacity: 0.11;
+  /* Corner ornament strength (SVG strokes are 0.9 alpha at source). */
+  --deco-corner-opacity: 0.5;
+  --deco-corner-size: 34px;
+  --deco-corner-inset: 10px;
+}
+
+/* ============================================================
+   1. HERO SUNBURST
+   Apply .deco-hero to the hero section. The fan is drawn on a
+   square SVG canvas with its focal point at canvas center, so
+   background-position centers the burst behind the hero's
+   focal point (name / cup). Rays fan upward; the lower half
+   of the canvas is empty on purpose.
+   ============================================================ */
+
+.deco-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.deco-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201200%201200%22%3E%3Cpolygon%20points%3D%22514.0%2C600.0%20515.3%2C585.1%20519.2%2C570.6%20525.5%2C557.0%20534.1%2C544.7%20544.7%2C534.1%20557.0%2C525.5%20570.6%2C519.2%20585.1%2C515.3%20600.0%2C514.0%20614.9%2C515.3%20629.4%2C519.2%20643.0%2C525.5%20655.3%2C534.1%20665.9%2C544.7%20674.5%2C557.0%20680.8%2C570.6%20684.7%2C585.1%20686.0%2C600.0%20600%2C600%22%20fill%3D%22%23c9a227%22%20fill-opacity%3D%220.20%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.65%22%20stroke-width%3D%223%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolyline%20points%3D%22385.0%2C600.0%20388.3%2C562.7%20398.0%2C526.5%20413.8%2C492.5%20435.3%2C461.8%20461.8%2C435.3%20492.5%2C413.8%20526.5%2C398.0%20562.7%2C388.3%20600.0%2C385.0%20637.3%2C388.3%20673.5%2C398.0%20707.5%2C413.8%20738.2%2C435.3%20764.7%2C461.8%20786.2%2C492.5%20802.0%2C526.5%20811.7%2C562.7%20815.0%2C600.0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.38%22%20stroke-width%3D%223%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolyline%20points%3D%22245.0%2C600.0%20250.4%2C538.4%20266.4%2C478.6%20292.6%2C422.5%20328.1%2C371.8%20371.8%2C328.1%20422.5%2C292.6%20478.6%2C266.4%20538.4%2C250.4%20600.0%2C245.0%20661.6%2C250.4%20721.4%2C266.4%20777.5%2C292.6%20828.2%2C328.1%20871.9%2C371.8%20907.4%2C422.5%20933.6%2C478.6%20949.6%2C538.4%20955.0%2C600.0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.3%22%20stroke-width%3D%223%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolyline%20points%3D%22108.0%2C600.0%20115.5%2C514.6%20137.7%2C431.7%20173.9%2C354.0%20223.1%2C283.7%20283.7%2C223.1%20354.0%2C173.9%20431.7%2C137.7%20514.6%2C115.5%20600.0%2C108.0%20685.4%2C115.5%20768.3%2C137.7%20846.0%2C173.9%20916.3%2C223.1%20976.9%2C283.7%201026.1%2C354.0%201062.3%2C431.7%201084.5%2C514.6%201092.0%2C600.0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.24%22%20stroke-width%3D%223%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cline%20x1%3D%22508.0%22%20y1%3D%22600.0%22%20x2%3D%2240.0%22%20y2%3D%22600.0%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22509.4%22%20y1%3D%22584.0%22%20x2%3D%22139.1%22%20y2%3D%22518.7%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22513.5%22%20y1%3D%22568.5%22%20x2%3D%2273.8%22%20y2%3D%22408.5%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22520.3%22%20y1%3D%22554.0%22%20x2%3D%22194.7%22%20y2%3D%22366.0%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22529.5%22%20y1%3D%22540.9%22%20x2%3D%22171.0%22%20y2%3D%22240.0%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22540.9%22%20y1%3D%22529.5%22%20x2%3D%22299.2%22%20y2%3D%22241.5%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22554.0%22%20y1%3D%22520.3%22%20x2%3D%22320.0%22%20y2%3D%22115.0%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22568.5%22%20y1%3D%22513.5%22%20x2%3D%22439.9%22%20y2%3D%22160.2%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22584.0%22%20y1%3D%22509.4%22%20x2%3D%22502.8%22%20y2%3D%2248.5%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22600.0%22%20y1%3D%22508.0%22%20x2%3D%22600.0%22%20y2%3D%22132.0%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22616.0%22%20y1%3D%22509.4%22%20x2%3D%22697.2%22%20y2%3D%2248.5%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22631.5%22%20y1%3D%22513.5%22%20x2%3D%22760.1%22%20y2%3D%22160.2%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22646.0%22%20y1%3D%22520.3%22%20x2%3D%22880.0%22%20y2%3D%22115.0%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22659.1%22%20y1%3D%22529.5%22%20x2%3D%22900.8%22%20y2%3D%22241.5%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22670.5%22%20y1%3D%22540.9%22%20x2%3D%221029.0%22%20y2%3D%22240.0%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22679.7%22%20y1%3D%22554.0%22%20x2%3D%221005.3%22%20y2%3D%22366.0%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22686.5%22%20y1%3D%22568.5%22%20x2%3D%221126.2%22%20y2%3D%22408.5%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22690.6%22%20y1%3D%22584.0%22%20x2%3D%221060.9%22%20y2%3D%22518.7%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22square%22%2F%3E%3Cline%20x1%3D%22692.0%22%20y1%3D%22600.0%22%20x2%3D%221160.0%22%20y2%3D%22600.0%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.55%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22square%22%2F%3E%3Cpolygon%20points%3D%22600%2C578%20622%2C600%20600%2C622%20578%2C600%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.8%22%20stroke-width%3D%223%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%22600%2C590%20610%2C600%20600%2C610%20590%2C600%22%20fill%3D%22%23c9a227%22%20fill-opacity%3D%220.8%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: center 46%;
+  background-size: min(1250px, 165vw) auto;
+  opacity: var(--deco-sunburst-opacity);
+}
+
+/* Stronger variant for a short hero or a section header band. */
+.deco-hero--bold::before {
+  --deco-sunburst-opacity: 0.3;
+}
+
+/* ============================================================
+   2. PAGE BACKGROUND TEXTURE
+   .deco-page-bg: fixed full-viewport texture layer for inner
+   pages (body or a page wrapper). Tile: 96px x 96px, stepped
+   diamonds, seamless in both axes.
+   .deco-texture: same tile as a local layer on one section.
+   Children are lifted above the layer in both cases.
+   ============================================================ */
+
+.deco-page-bg {
+  position: relative;
+}
+
+.deco-page-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2296%22%20height%3D%2296%22%20viewBox%3D%220%200%2096%2096%22%3E%3Cpolygon%20points%3D%220%2C-22%2022%2C0%200%2C22%20-22%2C0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%220%2C-12%2012%2C0%200%2C12%20-12%2C0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2296%2C-22%20118%2C0%2096%2C22%2074%2C0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2296%2C-12%20108%2C0%2096%2C12%2084%2C0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%220%2C74%2022%2C96%200%2C118%20-22%2C96%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%220%2C84%2012%2C96%200%2C108%20-12%2C96%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2296%2C74%20118%2C96%2096%2C118%2074%2C96%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2296%2C84%20108%2C96%2096%2C108%2084%2C96%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2248%2C18%2078%2C48%2048%2C78%2018%2C48%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2248%2C29%2067%2C48%2048%2C67%2029%2C48%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2248%2C41%2055%2C48%2048%2C55%2041%2C48%22%20fill%3D%22%23c9a227%22%20fill-opacity%3D%220.5%22%2F%3E%3Cpolygon%20points%3D%2248%2C-7%2055%2C0%2048%2C7%2041%2C0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%220%2C41%207%2C48%200%2C55%20-7%2C48%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2296%2C41%20103%2C48%2096%2C55%2089%2C48%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2248%2C89%2055%2C96%2048%2C103%2041%2C96%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: repeat;
+  background-size: 96px 96px;
+  opacity: var(--deco-texture-opacity);
+}
+
+.deco-page-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+.deco-texture {
+  position: relative;
+  isolation: isolate;
+}
+
+.deco-texture::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2296%22%20height%3D%2296%22%20viewBox%3D%220%200%2096%2096%22%3E%3Cpolygon%20points%3D%220%2C-22%2022%2C0%200%2C22%20-22%2C0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%220%2C-12%2012%2C0%200%2C12%20-12%2C0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2296%2C-22%20118%2C0%2096%2C22%2074%2C0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2296%2C-12%20108%2C0%2096%2C12%2084%2C0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%220%2C74%2022%2C96%200%2C118%20-22%2C96%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%220%2C84%2012%2C96%200%2C108%20-12%2C96%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2296%2C74%20118%2C96%2096%2C118%2074%2C96%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2296%2C84%20108%2C96%2096%2C108%2084%2C96%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2248%2C18%2078%2C48%2048%2C78%2018%2C48%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2248%2C29%2067%2C48%2048%2C67%2029%2C48%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2248%2C41%2055%2C48%2048%2C55%2041%2C48%22%20fill%3D%22%23c9a227%22%20fill-opacity%3D%220.5%22%2F%3E%3Cpolygon%20points%3D%2248%2C-7%2055%2C0%2048%2C7%2041%2C0%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%220%2C41%207%2C48%200%2C55%20-7%2C48%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2296%2C41%20103%2C48%2096%2C55%2089%2C48%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3Cpolygon%20points%3D%2248%2C89%2055%2C96%2048%2C103%2041%2C96%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22miter%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: repeat;
+  background-size: 96px 96px;
+  opacity: var(--deco-texture-opacity);
+}
+
+/* ============================================================
+   3. DECO CORNER ORNAMENTS
+   Apply .deco-corners to a card or panel. Four stepped gold
+   brackets are painted by one overlay (four background layers,
+   one per corner), inset from the element's edges. Give the
+   element enough padding that copy clears the brackets:
+   1.6rem or more works with the default 34px brackets.
+   ============================================================ */
+
+.deco-corners {
+  position: relative;
+}
+
+.deco-corners::after {
+  content: "";
+  position: absolute;
+  inset: var(--deco-corner-inset);
+  z-index: 2;
+  pointer-events: none;
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2236%22%20height%3D%2236%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cpath%20d%3D%22M33%203%20L16%203%20L16%208%20L11%208%20L11%2013%20L6%2013%20L6%2018%20L3%2018%20L3%2033%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.9%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22square%22%2F%3E%3Cpath%20d%3D%22M26%209%20L17%209%20L17%2014%20L12%2014%20L12%2019%20L9%2019%20L9%2026%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.9%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22square%22%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2236%22%20height%3D%2236%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cpath%20d%3D%22M3%203%20L20%203%20L20%208%20L25%208%20L25%2013%20L30%2013%20L30%2018%20L33%2018%20L33%2033%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.9%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22square%22%2F%3E%3Cpath%20d%3D%22M10%209%20L19%209%20L19%2014%20L24%2014%20L24%2019%20L27%2019%20L27%2026%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.9%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22square%22%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2236%22%20height%3D%2236%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cpath%20d%3D%22M33%2033%20L16%2033%20L16%2028%20L11%2028%20L11%2023%20L6%2023%20L6%2018%20L3%2018%20L3%203%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.9%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22square%22%2F%3E%3Cpath%20d%3D%22M26%2027%20L17%2027%20L17%2022%20L12%2022%20L12%2017%20L9%2017%20L9%2010%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.9%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22square%22%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2236%22%20height%3D%2236%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cpath%20d%3D%22M3%2033%20L20%2033%20L20%2028%20L25%2028%20L25%2023%20L30%2023%20L30%2018%20L33%2018%20L33%203%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.9%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22square%22%2F%3E%3Cpath%20d%3D%22M10%2027%20L19%2027%20L19%2022%20L24%2022%20L24%2017%20L27%2017%20L27%2010%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.9%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22square%22%2F%3E%3C%2Fsvg%3E");
+  background-position: left top, right top, left bottom, right bottom;
+  background-repeat: no-repeat;
+  background-size:
+    var(--deco-corner-size) var(--deco-corner-size),
+    var(--deco-corner-size) var(--deco-corner-size),
+    var(--deco-corner-size) var(--deco-corner-size),
+    var(--deco-corner-size) var(--deco-corner-size);
+  opacity: var(--deco-corner-opacity);
+}
+
+/* For featured / hero cards where the ornament may speak up. */
+.deco-corners--strong {
+  --deco-corner-opacity: 0.8;
+}
+
+/* ============================================================
+   4. SECTION DIVIDER
+   <hr class="deco-divider"> or any block element. Hairlines run
+   in from both edges to a stepped collar and a center diamond.
+   The center ornament is a 120px SVG; the lines stop 66px from
+   center so the ornament never distorts at any width.
+   ============================================================ */
+
+.deco-divider {
+  position: relative;
+  display: block;
+  height: 24px;
+  max-width: 46rem;
+  margin: 2.75rem auto;
+  border: none;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22120%22%20height%3D%2224%22%20viewBox%3D%220%200%20120%2024%22%3E%3Cg%20stroke%3D%22%23c9a227%22%20stroke-opacity%3D%220.85%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22square%22%3E%3Cpath%20d%3D%22M0%2012%20H40%22%2F%3E%3Cpath%20d%3D%22M80%2012%20H120%22%2F%3E%3Cpath%20d%3D%22M20%205%20H36%22%2F%3E%3Cpath%20d%3D%22M84%205%20H100%22%2F%3E%3Cpath%20d%3D%22M20%2019%20H36%22%2F%3E%3Cpath%20d%3D%22M84%2019%20H100%22%2F%3E%3Cpolygon%20points%3D%2260%2C2%2070%2C12%2060%2C22%2050%2C12%22%20fill%3D%22none%22%20stroke-linejoin%3D%22miter%22%2F%3E%3C%2Fg%3E%3Cpolygon%20points%3D%2260%2C8%2064%2C12%2060%2C16%2056%2C12%22%20fill%3D%22%23c9a227%22%20fill-opacity%3D%220.85%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: 120px 24px;
+}
+
+.deco-divider::before,
+.deco-divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: calc(50% - 66px);
+  height: 1px;
+}
+
+.deco-divider::before {
+  left: 0;
+  background: linear-gradient(to right, transparent, rgba(201, 162, 39, 0.55));
+}
+
+.deco-divider::after {
+  right: 0;
+  background: linear-gradient(to left, transparent, rgba(201, 162, 39, 0.55));
+}
+
+/* Full-bleed variant for use outside the centered page column. */
+.deco-divider--wide {
+  max-width: none;
+}
