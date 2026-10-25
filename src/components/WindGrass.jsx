@@ -21,7 +21,7 @@ import { bucket } from "../lib/glyphAtlas.js";
   Weather: gusts are events, every 6-10 seconds, crossing in
   about 3.2 seconds along an arced path. Blades in the gust
   lean along the path direction, flutter at the peak, and
-  brighten. Four ribbons ride each gust, flowing glyph lines
+  brighten. Two ribbons ride each gust, flowing glyph lines
   shaped like the classic wind icon. Each ribbon traces
   itself across with a wave running along its length,
   finishes in a spiral curl tipped in gold, and sheds small
@@ -76,12 +76,16 @@ const buildRibbon = (len, R, phase, spacing) => {
     s * Lm,
     Math.sin(s * 4.4 + phase) * amp + Math.sin(s * Math.PI) * arc,
   ];
+  // The spiral enters at the bottom of its circle and sweeps
+  // upward, so the loop rolls over the top of the line the
+  // way the classic wind icon curls, instead of hanging
+  // below it.
   const end = mainPt(1);
   const cx = end[0];
-  const cy = end[1] + R;
-  const a0 = -Math.PI / 2;
+  const cy = end[1] - R;
+  const a0 = Math.PI / 2;
   const curlPt = (k) => {
-    const ang = a0 + k * turns * 2 * Math.PI;
+    const ang = a0 - k * turns * 2 * Math.PI;
     const r = R * (1 - k) + 12 * k;
     return [cx + r * Math.cos(ang), cy + r * Math.sin(ang)];
   };
@@ -259,15 +263,15 @@ export default function WindGrass({ opacity = 0.6 }) {
         arc: dirDown * H * (0.08 + Math.random() * 0.1),
         sigmaX: W * 0.16,
         sigmaY: H * 0.12,
-        ribbons: Array.from({ length: 4 }, (_, i) => {
+        ribbons: Array.from({ length: 2 }, (_, i) => {
           const r = buildRibbon(
             W * (0.36 + Math.random() * 0.15),
             34 + Math.random() * 13,
             Math.random() * 6.28,
             CELL_ASPECT * u * 2.6,
           );
-          r.yOff = (i - 1.5) * H * 0.052 + (Math.random() - 0.5) * H * 0.03;
-          r.headLag = Math.random() * 70 - 20;
+          r.yOff = (i - 0.5) * H * 0.17 + (Math.random() - 0.5) * H * 0.04;
+          r.headLag = i * 150 + Math.random() * 60 - 10;
           return r;
         }),
         band: null,
@@ -287,14 +291,14 @@ export default function WindGrass({ opacity = 0.6 }) {
       for (const r of g.ribbons) {
         const ox0 = -0.25 * W - r.len * 0.8 + r.headLag;
         const oy0 = g.yBase + r.yOff;
-        r.particles = Array.from({ length: 22 }, () => {
+        r.particles = Array.from({ length: 48 }, () => {
           const pt = r.points[Math.floor(r.points.length * (0.5 + Math.random() * 0.45))];
           return {
             x0: ox0 + pt.x + (Math.random() - 0.5) * 30,
-            y0: oy0 + pt.y + (Math.random() - 0.5) * 60,
+            y0: oy0 + pt.y + (Math.random() - 0.5) * 90,
             t0: now - Math.random() * 1.2,
-            life: 1.0 + Math.random() * 0.7,
-            vx: -(26 + Math.random() * 44),
+            life: 1.3 + Math.random() * 0.8,
+            vx: -(30 + Math.random() * 55),
             vy: 3 + Math.random() * 10,
             phase: Math.random() * 6.28,
             speed: 2 + Math.random() * 2.5,
@@ -439,10 +443,10 @@ export default function WindGrass({ opacity = 0.6 }) {
               r.points.length * Math.min(1, reveal) * (0.6 + Math.random() * 0.38),
             );
             const head = r.points[Math.min(r.points.length - 1, headIdx)];
-            pt.x0 = ox + head.x + (Math.random() - 0.5) * 26;
-            pt.y0 = oy + head.y + (Math.random() - 0.5) * 52;
+            pt.x0 = ox + head.x + (Math.random() - 0.5) * 36;
+            pt.y0 = oy + head.y + (Math.random() - 0.5) * 70;
             pt.t0 = now;
-            pt.life = 1.0 + Math.random() * 0.7;
+            pt.life = 1.3 + Math.random() * 0.8;
             age = 0;
           }
           const aFrac = age / pt.life;
@@ -451,9 +455,9 @@ export default function WindGrass({ opacity = 0.6 }) {
           if (sx < -30 || sx > W + 30 || inPanel(sx, sy)) continue;
           const env = Math.sin(Math.PI * Math.min(1, aFrac));
           const tw = 0.6 + 0.4 * Math.sin(now * pt.speed + pt.phase);
-          const f = life * env * tw * 0.85;
+          const f = life * env * tw * 1.15;
           if (f < 0.06) continue;
-          const sc = aFrac < 0.33 ? 2.0 : aFrac < 0.66 ? 1.5 : 1.1;
+          const sc = aFrac < 0.33 ? 2.6 : aFrac < 0.66 ? 2.0 : 1.5;
           stamp(ctx, sprite(pt.ch, shade(RIBBON_IVORY, bucket(f, 0.05)), sc), sx, sy, false);
         }
       }
