@@ -3,6 +3,7 @@ import sunGrid from "../assets/sun-grid.json";
 import { COLS, ROWS, renderFrame } from "../lib/cupGeometry.js";
 import { spinState } from "../lib/spinState.js";
 import { shade } from "../lib/discParticles.js";
+import { glyphSprite, drawSprite, bucket } from "../lib/glyphAtlas.js";
 
 /*
   WarpedSunField: the homepage sun backdrop, warped by the
@@ -47,6 +48,8 @@ export default function WarpedSunField({ opacity = 0.5 }) {
     let pw = 0;
     let ph = 0;
     let tick = 0;
+    let stride = 4;
+    let lastScroll = 0;
     let cache = null;
 
     const cover = (w, h) => {
@@ -143,7 +146,11 @@ export default function WarpedSunField({ opacity = 0.5 }) {
           const tvecY = my2 - my;
           const stretch = Math.hypot(tvecX, tvecY) / cellW;
           const det = Math.max(0.35, Math.min(2.6, stretch));
-          const bright = Math.max(0.72, Math.min(1.9, 0.72 + 0.5 / det));
+          const bright = bucket(
+            Math.max(0.72, Math.min(1.9, 0.72 + 0.5 / det)),
+            0.09,
+          );
+          const bold = r < sphereR * 1.45;
           list.push({
             gx,
             gy,
@@ -153,8 +160,12 @@ export default function WarpedSunField({ opacity = 0.5 }) {
             dy: my - cy,
             ang: Math.atan2(tvecY, tvecX),
             stretch: Math.max(0.7, Math.min(1.9, stretch)),
-            bright,
-            bold: r < sphereR * 1.45,
+            sp: glyphSprite(
+              grid.lines[gy][gx],
+              shade(grid.palette[ci], bright),
+              u,
+              bold,
+            ),
             full: r < sphereR * FULL_R,
           });
         }
@@ -175,6 +186,10 @@ export default function WarpedSunField({ opacity = 0.5 }) {
 
       const stage = document.querySelector(".cup-stage");
       if (!stage) return;
+      // While the page is actively scrolling, the blit alone
+      // rides along; the zone pass resumes the moment the
+      // scroll settles, so scrolling cannot break the frame.
+      if (performance.now() - lastScroll < 120) return;
       const rect = stage.getBoundingClientRect();
       if (rect.bottom < -360 || rect.top > ph + 360 || rect.width < 10) return;
       const comX = rect.left + rect.width / 2;
@@ -243,19 +258,13 @@ export default function WarpedSunField({ opacity = 0.5 }) {
       const key = `${rect.width.toFixed(1)}|${pw}|${ph}`;
       if (!cache || cache.key !== key) buildCache(comX, comY, sphereR, rect.width);
 
-      // clear the zone, then redraw its glyphs warped
+      // clear the zone, then stamp its glyphs warped. Sprites
+      // only: fillText under per-glyph transforms was the lag.
       ctx.fillStyle = "#0a0a09";
       ctx.beginPath();
       ctx.arc(comX, comY, zoneR, 0, Math.PI * 2);
       ctx.fill();
 
-      const { u } = cover(pw, ph);
-      const font = `${u}px "Courier New", Courier, monospace`;
-      const fontB = `bold ${u}px "Courier New", Courier, monospace`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      let lastBold = null;
-      let lastColor = null;
       for (const e of cache.list) {
         const cx = comX + e.relX;
         const cy = comY + e.relY;
@@ -263,29 +272,25 @@ export default function WarpedSunField({ opacity = 0.5 }) {
         const mx = cx + e.dx;
         const my = cy + e.dy;
         if (distAt(mx, my) < 5) continue;
-        if (e.bold !== lastBold) {
-          ctx.font = e.bold ? fontB : font;
-          lastBold = e.bold;
-        }
-        const color = shade(grid.palette[grid.cells[e.gy][e.gx]], e.bright);
-        if (color !== lastColor) {
-          ctx.fillStyle = color;
-          lastColor = color;
-        }
         if (e.full) {
-          ctx.save();
-          ctx.translate(mx, my);
-          ctx.rotate(e.ang);
-          ctx.scale(e.stretch, 1);
-          ctx.fillText(grid.lines[e.gy][e.gx], 0, 0);
-          ctx.restore();
+          drawSprite(ctx, e.sp, mx, my, e.ang, e.stretch, dpr);
         } else {
-          ctx.fillText(grid.lines[e.gy][e.gx], mx, my);
+          ctx.setTransform(dpr, 0, 0, dpr, dpr * mx, dpr * my);
+          ctx.drawImage(
+            e.sp,
+            -e.sp.width / (2 * e.sp._ss),
+            -e.sp.height / (2 * e.sp._ss),
+          );
         }
       }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
     buildPristine();
+    const onScroll = () => {
+      lastScroll = performance.now();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -294,7 +299,13 @@ export default function WarpedSunField({ opacity = 0.5 }) {
     } else {
       const loop = () => {
         tick += 1;
-        if (tick % 4 === 0) drawWarp();
+        if (tick % stride === 0) {
+          const tStart = performance.now();
+          drawWarp();
+          const dur = performance.now() - tStart;
+          if (dur > 16 && stride < 10) stride += 2;
+          else if (dur < 6 && stride > 4) stride -= 1;
+        }
         raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame(loop);
@@ -306,6 +317,7 @@ export default function WarpedSunField({ opacity = 0.5 }) {
     ro.observe(parent);
     return () => {
       ro.disconnect();
+      window.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(raf);
     };
   }, []);
