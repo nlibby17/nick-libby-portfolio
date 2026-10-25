@@ -46,8 +46,15 @@ export default function AsciiField({ opacity = 0.55, variant = "grass", anchor =
       canvas.style.height = `${h}px`;
       const ctx = canvas.getContext("2d");
       ctx.scale(dpr, dpr);
-      ctx.fillStyle = "#0a0a09";
-      ctx.fillRect(0, 0, w, h);
+      // Background fields (grass, sun) paint the page tone. The
+      // cup is an OBJECT, not a field: its canvas stays
+      // transparent so the backdrop shows through between the
+      // glyphs. Painting a solid rect here made the cup read as
+      // a pasted image block, box edges and all (Nick, Oct 25).
+      if (variant !== "cup") {
+        ctx.fillStyle = "#0a0a09";
+        ctx.fillRect(0, 0, w, h);
+      }
       // cover: pick the cell height that covers both dimensions
       const u = Math.max(w / (grid.cols * CELL_ASPECT), h / grid.rows);
       const gridW = grid.cols * CELL_ASPECT * u;

@@ -199,15 +199,19 @@ a {
   width: min(290px, 72vw);
   aspect-ratio: 582 / 830;
   margin: 1.8rem auto 0.4rem;
-  animation: cup-sway 7s ease-in-out infinite alternate;
+  animation: cup-spin 36s linear infinite;
 }
 
-@keyframes cup-sway {
+/* The rotation Nick asked for (Oct 25, 2026): the cup spins
+   continuously around its own center, on its tilt. This
+   replaces the old +-0.7deg sway, which was real code but
+   subtle enough to read as no animation at all. */
+@keyframes cup-spin {
   from {
-    transform: rotate(-0.7deg);
+    transform: rotate(0deg);
   }
   to {
-    transform: rotate(0.7deg);
+    transform: rotate(360deg);
   }
 }
 
@@ -215,6 +219,12 @@ a {
   .cup-stage {
     animation: none;
   }
+}
+
+/* The spinning cup's corners sweep wider than its layout box;
+   keep that from ever producing a horizontal scrollbar. */
+body {
+  overflow-x: clip;
 }
 
 .hero .cta {
