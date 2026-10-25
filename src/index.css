@@ -265,18 +265,69 @@ body {
 }
 
 .card {
-  background: var(--panel);
+  /* Smoked-glass plate (Nick's translucence call, Oct 25,
+     2026): the sun field ghosts through at low strength with
+     a slight blur, so the card lives in the backdrop's world
+     instead of sitting on it as a slab. Splash is leashed:
+     a thin double rule up top, small accents only elsewhere. */
+  background: rgb(18 18 17 / 0.82);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   border: 1px solid var(--panel-edge);
-  border-top: 3px solid var(--splash, var(--gold));
+  border-top: 5px double
+    color-mix(in srgb, var(--splash, var(--gold)) 78%, transparent);
+  outline: 1px solid rgb(201 162 39 / 0.16);
+  outline-offset: -7px;
   border-radius: 0;
   padding: 1.6rem 1.8rem;
   text-decoration: none;
   color: var(--ink);
   display: block;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
 }
 
-.card:hover {
-  border-color: var(--splash, var(--gold));
+.card:hover,
+.card:focus-visible {
+  border-color: color-mix(
+    in srgb,
+    var(--splash, var(--gold)) 65%,
+    var(--panel-edge)
+  );
+  transform: translateY(-4px);
+  box-shadow: 6px 6px 0
+    color-mix(in srgb, var(--splash, var(--gold)) 32%, transparent);
+  --deco-corner-opacity: 1;
+}
+
+.card h3::after {
+  content: "";
+  display: block;
+  height: 2px;
+  margin-top: 0.35rem;
+  background: color-mix(in srgb, var(--splash, var(--gold)) 80%, transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.28s ease;
+}
+
+.card:hover h3::after,
+.card:focus-visible h3::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+  .card:hover {
+    transform: none;
+  }
+  .card h3::after {
+    transition: none;
+  }
 }
 
 .card-wide {
@@ -301,10 +352,15 @@ body {
   font-size: 0.78rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--splash, var(--gold));
-  border: 1px solid var(--splash, var(--gold));
+  color: color-mix(in srgb, var(--splash, var(--gold)) 88%, var(--ink));
+  border: 1px solid
+    color-mix(in srgb, var(--splash, var(--gold)) 55%, transparent);
   padding: 0.15rem 0.6rem;
   margin-bottom: 0.9rem;
+}
+
+.card .stat .value {
+  color: var(--ink);
 }
 
 .stat-row {

@@ -136,6 +136,7 @@
     var(--deco-corner-size) var(--deco-corner-size),
     var(--deco-corner-size) var(--deco-corner-size);
   opacity: var(--deco-corner-opacity);
+  transition: opacity 0.25s ease;
 }
 
 /* For featured / hero cards where the ornament may speak up. */
