@@ -2,65 +2,37 @@ import { useEffect, useRef } from "react";
 import sunGrid from "../assets/sun-grid.json";
 import { COLS, ROWS, renderFrame } from "../lib/cupGeometry.js";
 import { spinState } from "../lib/spinState.js";
+import { shade } from "../lib/discParticles.js";
 
 /*
-  WarpedSunField: the homepage sun backdrop, gravitationally
-  lensed by the hero cup. Design settled with Nick, Oct 25, 2026:
-  - The lens is radial around the cup's center of mass, not a
-    push along the silhouette. Screen points sample the field
-    from closer to the center, so the pattern compresses into
-    arcs near the cup: the black-hole signature.
-  - The strength curve is steep near the edge (cubic in the
-    normalized distance), polite farther out, plus a faint long
-    tail so distant rays still acknowledge the mass.
-  - The mapping compresses distance-to-edge: a screen point at
-    distance d samples as if it sat at d / (1 + K * exp(-d/30)).
-    Incoming characters crowd against the silhouette instead
-    of vanishing, so there is no painted moat (v1's flaw, which
-    read as an outline gap following the cup).
-  - The photon ring is a screen-space band hugging the
-    silhouette, guaranteed continuous; inside the core the
-    field is also dimmed into a soft well so the ring and the
-    crowding have contrast to read against.
-  - The silhouette (edge, moat, ring) comes from the cup
-    renderer's own hit mask at the live spin phase, so the lens
-    furniture follows the pose while the lens itself stays
-    anchored to the center of mass.
-  - No swirl, no accretion flow: the field is a fixed texture
-    under a lens, so nothing is eaten and nothing needs
-    respawning. Nick's call, Oct 25, 2026.
-  Implementation: the pristine field is rendered once to an
-  offscreen canvas and blitted each tick; only cells inside
-  the cup's neighborhood are redrawn, lensed, over it.
+  WarpedSunField: the homepage sun backdrop, warped by the
+  hero cup acting as a spherical mass. Built from the offline
+  prototypes Nick approved (Oct 25, 2026) and the published
+  techniques the research surfaced:
+  - The mass is a SPHERE approximating the cup's overall shape,
+    centered on its center of mass. The visible occlusion is
+    the cup's own silhouette (from the cup renderer's hit
+    mask, padded slightly), so the void is cup-shaped.
+  - Letters MOVE (forward mapping): each glyph in the zone is
+    displaced inward with a steep fade, dragged tangentially,
+    rotated to the local flow, stretched along it, and
+    brightened or bolded as the local squeeze demands. That is
+    what makes the bending curves legible; the earlier
+    grid-resampling versions could not curve a row.
+  - The displacement is windowed to zero at the zone edge, so
+    the warped neighborhood joins the pristine field with no
+    seam. The warp geometry is cached as per-glyph deltas
+    (translation-invariant under scrolling); only the
+    occlusion mask is rebuilt per tick.
+  - Beyond the disc's bright work the field is a pristine
+    offscreen render, blitted each tick.
 */
 const CELL_ASPECT = 0.6;
-const LENS_K = 2.4; // crowding strength of the lens mapping
-const LENS_SCALE = 30; // px over which the crowding relaxes
-const RING_D = 7; // screen-space px band that reads as the ring
-const SDF_RES = 6; // px per distance-field cell
-
-function shade(color, f) {
-  let r, g, b;
-  if (color[0] === "#") {
-    const n = parseInt(color.slice(1), 16);
-    r = (n >> 16) & 255;
-    g = (n >> 8) & 255;
-    b = n & 255;
-  } else {
-    const m = color.match(/[\d.]+/g);
-    [r, g, b] = m.map(Number);
-  }
-  return `rgb(${Math.round(r * f)},${Math.round(g * f)},${Math.round(b * f)})`;
-}
-
-function brighten(hex) {
-  const n = parseInt(hex.slice(1), 16);
-  const r = (n >> 16) & 255;
-  const g = (n >> 8) & 255;
-  const b = n & 255;
-  const mix = (c, t) => Math.round(c + (t - c) * 0.55);
-  return `rgb(${mix(r, 255)},${mix(g, 237)},${mix(b, 176)})`;
-}
+const PULL0 = 0.17; // inward pull at the surface, x stage width
+const TWIST0 = 0.55; // tangential drag at the surface, radians
+const FULL_R = 1.9; // rotated treatment inside this x sphere radius
+const ZONE_R = 3.4; // warp zone edge, x sphere radius
+const SDF_RES = 6;
 
 export default function WarpedSunField({ opacity = 0.5 }) {
   const ref = useRef(null);
@@ -75,6 +47,7 @@ export default function WarpedSunField({ opacity = 0.5 }) {
     let pw = 0;
     let ph = 0;
     let tick = 0;
+    let cache = null;
 
     const cover = (w, h) => {
       const u = Math.max(w / (grid.cols * CELL_ASPECT), h / grid.rows);
@@ -123,6 +96,73 @@ export default function WarpedSunField({ opacity = 0.5 }) {
       const pctx = pristine.getContext("2d");
       pctx.scale(dpr, dpr);
       drawPristine(pctx, pw, ph);
+      cache = null;
+    };
+
+    const warpRaw = (x, y, comX, comY, sphereR, stageW) => {
+      const vx = x - comX;
+      const vy = y - comY;
+      const r = Math.hypot(vx, vy);
+      if (r < 1e-6) return [x, y, r];
+      const ratio = sphereR / r;
+      const pull = PULL0 * stageW * Math.pow(ratio, 2.2);
+      const twist = TWIST0 * ratio * ratio;
+      const th = Math.atan2(vy, vx) + twist;
+      const r2 = Math.max(r - pull, 1);
+      // window: full strength inside 2.6 radii, smooth to 0 at edge
+      let w = 1;
+      const e0 = sphereR * 2.6;
+      const e1 = sphereR * ZONE_R;
+      if (r > e0) {
+        const t = Math.min(1, (r - e0) / (e1 - e0));
+        w = 1 - t * t * (3 - 2 * t);
+      }
+      const mx = comX + r2 * Math.cos(th);
+      const my = comY + r2 * Math.sin(th);
+      return [x + (mx - x) * w, y + (my - y) * w, r];
+    };
+
+    const buildCache = (comX, comY, sphereR, stageW) => {
+      const { u, ox, oy } = cover(pw, ph);
+      const cellW = CELL_ASPECT * u;
+      const zoneR = sphereR * ZONE_R;
+      const gx0 = Math.max(0, Math.floor((comX - zoneR - ox) / cellW));
+      const gx1 = Math.min(grid.cols - 1, Math.ceil((comX + zoneR - ox) / cellW));
+      const gy0 = Math.max(0, Math.floor((comY - zoneR - oy) / u));
+      const gy1 = Math.min(grid.rows - 1, Math.ceil((comY + zoneR - oy) / u));
+      const list = [];
+      for (let gy = gy0; gy <= gy1; gy++) {
+        for (let gx = gx0; gx <= gx1; gx++) {
+          const ci = grid.cells[gy][gx];
+          if (ci < 0) continue;
+          const cx = ox + gx * cellW + cellW / 2;
+          const cy = oy + gy * u + u / 2;
+          const [mx, my, r] = warpRaw(cx, cy, comX, comY, sphereR, stageW);
+          const [mx2, my2] = warpRaw(cx + cellW, cy, comX, comY, sphereR, stageW);
+          const tvecX = mx2 - mx;
+          const tvecY = my2 - my;
+          const stretch = Math.hypot(tvecX, tvecY) / cellW;
+          const det = Math.max(0.35, Math.min(2.6, stretch));
+          const bright = Math.max(0.72, Math.min(1.9, 0.72 + 0.5 / det));
+          list.push({
+            gx,
+            gy,
+            relX: cx - comX,
+            relY: cy - comY,
+            dx: mx - cx,
+            dy: my - cy,
+            ang: Math.atan2(tvecY, tvecX),
+            stretch: Math.max(0.7, Math.min(1.9, stretch)),
+            bright,
+            bold: r < sphereR * 1.45,
+            full: r < sphereR * FULL_R,
+          });
+        }
+      }
+      cache = {
+        key: `${stageW.toFixed(1)}|${pw}|${ph}`,
+        list,
+      };
     };
 
     const drawWarp = () => {
@@ -136,7 +176,11 @@ export default function WarpedSunField({ opacity = 0.5 }) {
       const stage = document.querySelector(".cup-stage");
       if (!stage) return;
       const rect = stage.getBoundingClientRect();
-      if (rect.bottom < -340 || rect.top > ph + 340 || rect.width < 10) return;
+      if (rect.bottom < -360 || rect.top > ph + 360 || rect.width < 10) return;
+      const comX = rect.left + rect.width / 2;
+      const comY = rect.top + rect.height / 2;
+      const sphereR = rect.width * 0.58;
+      const zoneR = sphereR * ZONE_R;
 
       const phase = spinState.phase;
       const frame =
@@ -145,14 +189,11 @@ export default function WarpedSunField({ opacity = 0.5 }) {
           : { phase, ...renderFrame(phase) };
       const hits = frame.hits;
 
-      const coreReach = rect.width * 0.25;
-      const tailReach = rect.width * 0.7;
-      const comX = rect.left + rect.width / 2;
-      const comY = rect.top + rect.height / 2;
-      const x0 = Math.max(0, rect.left - tailReach - 12);
-      const y0 = Math.max(0, rect.top - tailReach - 12);
-      const x1 = Math.min(pw, rect.right + tailReach + 12);
-      const y1 = Math.min(ph, rect.bottom + tailReach + 12);
+      // occlusion distance field from the live silhouette
+      const x0 = Math.max(0, comX - zoneR - 24);
+      const y0 = Math.max(0, comY - zoneR - 24);
+      const x1 = Math.min(pw, comX + zoneR + 24);
+      const y1 = Math.min(ph, comY + zoneR + 24);
       const gw = Math.max(2, Math.ceil((x1 - x0) / SDF_RES));
       const gh = Math.max(2, Math.ceil((y1 - y0) / SDF_RES));
       const INF = 1e6;
@@ -192,72 +233,54 @@ export default function WarpedSunField({ opacity = 0.5 }) {
           dist[k] = d;
         }
       }
+      const distAt = (x, y) => {
+        const i = Math.floor((x - x0) / SDF_RES);
+        const j = Math.floor((y - y0) / SDF_RES);
+        if (i < 0 || j < 0 || i >= gw || j >= gh) return INF;
+        return dist[j * gw + i];
+      };
 
-      const { u, ox, oy } = cover(pw, ph);
-      const cellW = CELL_ASPECT * u;
-      ctx.font = `${u}px "Courier New", Courier, monospace`;
-      ctx.textBaseline = "top";
-      const gx0 = Math.max(0, Math.floor((x0 - ox) / cellW));
-      const gx1 = Math.min(grid.cols - 1, Math.ceil((x1 - ox) / cellW));
-      const gy0 = Math.max(0, Math.floor((y0 - oy) / u));
-      const gy1 = Math.min(grid.rows - 1, Math.ceil((y1 - oy) / u));
-      let last = null;
-      for (let gy = gy0; gy <= gy1; gy++) {
-        for (let gx = gx0; gx <= gx1; gx++) {
-          const px = ox + gx * cellW;
-          const py = oy + gy * u;
-          const cx = px + cellW / 2;
-          const cy = py + u / 2;
-          const si = Math.min(gw - 1, Math.max(0, Math.floor((cx - x0) / SDF_RES)));
-          const sj = Math.min(gh - 1, Math.max(0, Math.floor((cy - y0) / SDF_RES)));
-          const k = sj * gw + si;
-          const d = dist[k];
-          if (d >= tailReach || d < 0.5) continue;
-          // Radial lens around the center of mass: sample the
-          // field from closer to the center than the screen
-          // point, steeply near the edge, faintly in the tail.
-          const vx = cx - comX;
-          const vy = cy - comY;
-          const r = Math.hypot(vx, vy);
-          if (r < 1) continue;
-          // Compression mapping: the source sits at a squeezed
-          // distance-to-edge, so defl never exceeds d and the
-          // sample cannot cross deep into the cup.
-          const dsTarget = d / (1 + LENS_K * Math.exp(-d / LENS_SCALE));
-          const defl = d - dsTarget;
-          const dimF = 1 - 0.38 * Math.exp(-((d / (coreReach * 1.4)) ** 2));
-          const sx = cx - (vx / r) * defl;
-          const sy = cy - (vy / r) * defl;
-          const ssi = Math.min(gw - 1, Math.max(0, Math.floor((sx - x0) / SDF_RES)));
-          const ssj = Math.min(gh - 1, Math.max(0, Math.floor((sy - y0) / SDF_RES)));
-          const ds = dist[ssj * gw + ssi];
-          ctx.fillStyle = "#0a0a09";
-          ctx.fillRect(px, py, cellW + 0.75, u + 0.75);
-          last = null;
-          if (ds <= 0.5) {
-            // Rare grazing case: keep the pristine character,
-            // dimmed by the well, rather than opening a gap.
-            const ci0 = grid.cells[gy][gx];
-            if (ci0 >= 0) {
-              const c0 = shade(grid.palette[ci0], dimF);
-              ctx.fillStyle = c0;
-              last = c0;
-              ctx.fillText(grid.lines[gy][gx], px, py);
-            }
-            continue;
-          }
-          const sgx = Math.round((sx - ox) / cellW);
-          const sgy = Math.round((sy - oy) / u);
-          if (sgx < 0 || sgx >= grid.cols || sgy < 0 || sgy >= grid.rows) continue;
-          const ci = grid.cells[sgy][sgx];
-          if (ci < 0) continue;
-          let color = grid.palette[ci];
-          color = d <= RING_D ? brighten(color) : shade(color, dimF);
-          if (color !== last) {
-            ctx.fillStyle = color;
-            last = color;
-          }
-          ctx.fillText(grid.lines[sgy][sgx], px, py);
+      const key = `${rect.width.toFixed(1)}|${pw}|${ph}`;
+      if (!cache || cache.key !== key) buildCache(comX, comY, sphereR, rect.width);
+
+      // clear the zone, then redraw its glyphs warped
+      ctx.fillStyle = "#0a0a09";
+      ctx.beginPath();
+      ctx.arc(comX, comY, zoneR, 0, Math.PI * 2);
+      ctx.fill();
+
+      const { u } = cover(pw, ph);
+      const font = `${u}px "Courier New", Courier, monospace`;
+      const fontB = `bold ${u}px "Courier New", Courier, monospace`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      let lastBold = null;
+      let lastColor = null;
+      for (const e of cache.list) {
+        const cx = comX + e.relX;
+        const cy = comY + e.relY;
+        if (distAt(cx, cy) < 5) continue;
+        const mx = cx + e.dx;
+        const my = cy + e.dy;
+        if (distAt(mx, my) < 5) continue;
+        if (e.bold !== lastBold) {
+          ctx.font = e.bold ? fontB : font;
+          lastBold = e.bold;
+        }
+        const color = shade(grid.palette[grid.cells[e.gy][e.gx]], e.bright);
+        if (color !== lastColor) {
+          ctx.fillStyle = color;
+          lastColor = color;
+        }
+        if (e.full) {
+          ctx.save();
+          ctx.translate(mx, my);
+          ctx.rotate(e.ang);
+          ctx.scale(e.stretch, 1);
+          ctx.fillText(grid.lines[e.gy][e.gx], 0, 0);
+          ctx.restore();
+        } else {
+          ctx.fillText(grid.lines[e.gy][e.gx], mx, my);
         }
       }
     };
@@ -271,7 +294,7 @@ export default function WarpedSunField({ opacity = 0.5 }) {
     } else {
       const loop = () => {
         tick += 1;
-        if (tick % 2 === 0) drawWarp();
+        if (tick % 4 === 0) drawWarp();
         raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame(loop);

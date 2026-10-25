@@ -177,6 +177,22 @@ a {
   pointer-events: none;
 }
 
+/* Particle disc canvases: the back half lives in the backdrop
+   stack; the front half floats above the page so its near arc
+   can pass in front of the cup. Neither takes pointer events. */
+.disc-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.disc-front {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
 .landing-main {
   position: relative;
   z-index: 1;

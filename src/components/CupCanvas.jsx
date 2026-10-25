@@ -25,6 +25,7 @@ export default function CupCanvas() {
     const parent = canvas.parentElement;
     let raf = 0;
     let phase = 0;
+    const startTime = performance.now();
 
     const draw = () => {
       const w = parent.clientWidth;
@@ -39,6 +40,7 @@ export default function CupCanvas() {
       ctx.scale(dpr, dpr);
       const frame = renderFrame(phase);
       spinState.phase = phase;
+      spinState.time = (performance.now() - startTime) / 1000;
       spinState.frame = { phase, ...frame };
       const { vals, hits } = frame;
       const u = Math.max(w / (COLS * CELL_ASPECT), h / ROWS);
@@ -91,9 +93,8 @@ export default function CupCanvas() {
     if (reduced) {
       draw();
     } else {
-      const t0 = performance.now();
       const loop = (now) => {
-        phase = (((now - t0) / SPIN_MS) * Math.PI * 2) % (Math.PI * 2);
+        phase = (((now - startTime) / SPIN_MS) * Math.PI * 2) % (Math.PI * 2);
         draw();
         raf = requestAnimationFrame(loop);
       };
