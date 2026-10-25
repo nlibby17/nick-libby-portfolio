@@ -330,6 +330,125 @@ body {
   }
 }
 
+/* ------------------------------------------------------------
+   VHS glitch (Nick's combo, settled Oct 25, 2026): a single
+   burst on hover entry, about 0.42s, title-scoped. RGB split
+   (ghosts on the title text), slice jitter (a red duplicate of
+   the title, visible only in clipped bands, jumping against
+   the main copy), and a one-pixel tracking twitch folded into
+   the card's lift. Hard steps everywhere: tape does not ease.
+   ------------------------------------------------------------ */
+@keyframes vhs-track {
+  0% {
+    transform: translateY(0);
+  }
+  18% {
+    transform: translateY(-4px);
+  }
+  34% {
+    transform: translateY(-2.6px);
+  }
+  52% {
+    transform: translateY(-4.6px);
+  }
+  70%,
+  100% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes vhs-main {
+  0% {
+    transform: translateX(0);
+    text-shadow: none;
+  }
+  12% {
+    transform: translateX(2px);
+    text-shadow:
+      2px 0 rgb(255 45 85 / 0.75),
+      -2px 0 rgb(0 229 255 / 0.75);
+  }
+  26% {
+    transform: translateX(-1px);
+    text-shadow:
+      2px 0 rgb(255 45 85 / 0.75),
+      -2px 0 rgb(0 229 255 / 0.75);
+  }
+  44% {
+    transform: translateX(1px);
+    text-shadow:
+      1px 0 rgb(255 45 85 / 0.6),
+      -1px 0 rgb(0 229 255 / 0.6);
+  }
+  62%,
+  100% {
+    transform: translateX(0);
+    text-shadow: none;
+  }
+}
+
+@keyframes vhs-slice {
+  0%,
+  8% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.85;
+    clip-path: inset(8% 0 64% 0);
+    transform: translateX(-3px);
+  }
+  22% {
+    opacity: 0.85;
+    clip-path: inset(58% 0 12% 0);
+    transform: translateX(3px);
+  }
+  34% {
+    opacity: 0.7;
+    clip-path: inset(30% 0 42% 0);
+    transform: translateX(-2px);
+  }
+  46%,
+  100% {
+    opacity: 0;
+    clip-path: inset(50% 0 50% 0);
+    transform: translateX(0);
+  }
+}
+
+.card:hover {
+  animation: vhs-track 0.42s steps(1, end) 1;
+}
+
+.card h3 {
+  position: relative;
+}
+
+.card:hover h3 {
+  animation: vhs-main 0.42s steps(1, end) 1;
+}
+
+.card h3::before {
+  content: attr(data-title);
+  position: absolute;
+  inset: 0;
+  color: rgb(255 45 85 / 0.9);
+  text-shadow: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.card:hover h3::before {
+  animation: vhs-slice 0.42s steps(1, end) 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card:hover,
+  .card:hover h3,
+  .card:hover h3::before {
+    animation: none;
+  }
+}
+
 .card-wide {
   grid-column: 1 / -1;
 }

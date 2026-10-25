@@ -11,7 +11,7 @@ export default function ProjectCard({ project, onNavigate }) {
       }}
     >
       {project.status && <span className="status">{project.status}</span>}
-      <h3>{project.title}</h3>
+      <h3 data-title={project.title}>{project.title}</h3>
       <p className="tagline">{project.tagline}</p>
 
       {project.cardType === "stat" && (
