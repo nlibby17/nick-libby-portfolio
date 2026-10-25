@@ -23,10 +23,12 @@ import { bucket } from "../lib/glyphAtlas.js";
   lean along the path direction, flutter at the peak, and
   brighten. Four ribbons ride each gust, flowing glyph lines
   shaped like the classic wind icon. Each ribbon traces
-  itself across, finishes in a spiral curl tipped in gold,
-  and carries sparkles around its head that twinkle and
-  trail off. Between gusts, a sparse shimmer keeps the
-  field from looking dead.
+  itself across with a wave running along its length,
+  finishes in a spiral curl tipped in gold, and sheds small
+  particles at its head that drift back, twinkle, and fade,
+  in the spirit of a shooting star trail turned down low.
+  Between gusts, a sparse shimmer keeps the field from
+  looking dead.
 
   Perf discipline (the first wind builds taught this the
   hard way, first by saturating the main thread so the page
@@ -48,7 +50,7 @@ import { bucket } from "../lib/glyphAtlas.js";
 const CELL_ASPECT = 0.6;
 const RIBBON_IVORY = "#f2ede1";
 const RIBBON_GOLD = "#e8c95d";
-const RIBBON_SCALE = 3.0;
+const RIBBON_SCALE = 2.4;
 const SPARKLE_CHARS = ["+", "*", "·", "'", "."];
 
 // Glyph for a stretch of line travelling at angle ang (screen
@@ -62,8 +64,9 @@ const tangentChar = (ang) => {
 
 // One wind ribbon: a gently waving run of glyphs ending in a
 // spiral curl, sampled by arc length with the glyph at each
-// point chosen from the path direction there. Sparkles are
-// seeded around the head half, ready to twinkle at draw time.
+// point chosen from the path direction there. Trail particles
+// are attached by the gust spawn, which knows the stage
+// geometry they drift through.
 const buildRibbon = (len, R, phase, spacing) => {
   const Lm = len * 0.74;
   const amp = 4 + Math.random() * 4;
@@ -119,22 +122,7 @@ const buildRibbon = (len, R, phase, spacing) => {
     // that give the line its body
     return { x: p[0], y: p[1], ch, frac, curlK: p[2], nx: -Math.sin(ang), ny: Math.cos(ang) };
   });
-  const sparkles = [];
-  const SPARK_SCALES = [1.6, 1.6, 2.2, 2.2, 3.0];
-  for (let j = 0; j < 60; j++) {
-    const frac = 0.35 + Math.random() * 0.65;
-    const base = points[Math.min(n - 1, Math.round(frac * (n - 1)))];
-    sparkles.push({
-      x: base.x + (Math.random() - 0.5) * 80,
-      y: base.y + (Math.random() - 0.5) * 220,
-      frac,
-      ch: SPARKLE_CHARS[(Math.random() * SPARKLE_CHARS.length) | 0],
-      phase: Math.random() * 6.28,
-      speed: 2 + Math.random() * 2.5,
-      scale: SPARK_SCALES[(Math.random() * SPARK_SCALES.length) | 0],
-    });
-  }
-  return { points, sparkles, len, phase };
+  return { points, len, phase };
 };
 
 export default function WindGrass({ opacity = 0.6 }) {
@@ -289,6 +277,31 @@ export default function WindGrass({ opacity = 0.6 }) {
         const cy = cell.y + u * 0.5;
         return Math.abs(cy - pathY(g, cell.x)) < 2.4 * g.sigmaY;
       });
+      // Trail particles ride each ribbon. Each one is born
+      // near the ribbon head, drifts backward against the
+      // gust, twinkles, and fades over about a second and a
+      // half, then respawns at the head. Positions live in
+      // stage space so the trail stays behind as the gust
+      // moves on, the way a shooting star trail hangs in the
+      // sky behind the head that shed it.
+      for (const r of g.ribbons) {
+        const ox0 = -0.25 * W - r.len * 0.8 + r.headLag;
+        const oy0 = g.yBase + r.yOff;
+        r.particles = Array.from({ length: 22 }, () => {
+          const pt = r.points[Math.floor(r.points.length * (0.5 + Math.random() * 0.45))];
+          return {
+            x0: ox0 + pt.x + (Math.random() - 0.5) * 30,
+            y0: oy0 + pt.y + (Math.random() - 0.5) * 60,
+            t0: now - Math.random() * 1.2,
+            life: 1.0 + Math.random() * 0.7,
+            vx: -(26 + Math.random() * 44),
+            vy: 3 + Math.random() * 10,
+            phase: Math.random() * 6.28,
+            speed: 2 + Math.random() * 2.5,
+            ch: SPARKLE_CHARS[(Math.random() * SPARKLE_CHARS.length) | 0],
+          };
+        });
+      }
       gust = g;
     };
 
@@ -382,43 +395,66 @@ export default function WindGrass({ opacity = 0.6 }) {
       // passes offset along the path normal at reduced light,
       // then the bright center pass on top. Glyphs render at
       // RIBBON_SCALE so the chain reads as a stroked line with
-      // soft edges rather than a dotted thread.
+      // soft edges rather than a dotted thread. Every pass
+      // stamps at partial alpha, so the line stays translucent
+      // and reads as light moving through grass rather than
+      // paint laid over it. A wave travels along the length
+      // while the gust lives, growing toward the tip, so the
+      // shape keeps breathing instead of riding across rigid.
       const life = Math.sin(Math.PI * Math.min(1, Math.max(0, t)));
-      const reveal = Math.min(1, t * 1.75);
+      const reveal = Math.min(1, t * 2.6);
       const PASSES = [
-        { off: -1, f: 0.7 },
-        { off: 1, f: 0.7 },
-        { off: 0, f: 1 },
+        { off: -1, f: 0.7, a: 0.4 },
+        { off: 1, f: 0.7, a: 0.4 },
+        { off: 0, f: 1, a: 0.88 },
       ];
       for (const r of gust.ribbons) {
         const ox = gx - r.len * 0.8 + r.headLag;
         const oy = gy + r.yOff;
         for (const pass of PASSES) {
+          ctx.globalAlpha = pass.a;
           for (const p of r.points) {
             if (p.frac > reveal) break;
             // glyph scale tapers into the curl so the spiral
             // stays an open ring instead of filling into a knot
             const ds = Math.round(RIBBON_SCALE * (1 - 0.4 * p.curlK) * 4) / 4;
-            const wob = Math.sin(now * 1.7 + p.x * 0.018 + r.phase) * 1.6;
+            const wob = Math.sin(p.frac * 6.5 - now * 5.2 + r.phase) * (1.5 + p.frac * 5.5);
             const sx = ox + p.x + p.nx * pass.off * u * ds * 0.42 - (ds - 1) * cellW * 0.5;
             const sy = oy + p.y + wob + p.ny * pass.off * u * ds * 0.42 - (ds - 1) * u * 0.5;
             if (sx < -30 || sx > W + 30 || inPanel(sx, sy)) continue;
-            let f = life * (1 - p.frac * 0.3) * pass.f;
+            let f = life * (1 - p.frac * 0.45) * pass.f * 0.92;
             if (pass.off === 0 && reveal - p.frac < 0.06) f *= 1.25;
             if (f < 0.06) continue;
             const col = p.frac > 0.86 ? RIBBON_GOLD : RIBBON_IVORY;
             stamp(ctx, sprite(p.ch, shade(col, bucket(f, 0.05)), ds), sx, sy, false);
           }
         }
-        for (const s of r.sparkles) {
-          if (s.frac > reveal + 0.02) continue;
-          const sx = ox + s.x;
-          const sy = oy + s.y + Math.sin(now * 1.7 + s.x * 0.018 + r.phase) * 1.6;
+        ctx.globalAlpha = 1;
+        // Trail particles: born at the head, left behind in
+        // stage space, shrinking and dimming as they age.
+        for (const pt of r.particles) {
+          let age = now - pt.t0;
+          if (age > pt.life) {
+            const headIdx = Math.floor(
+              r.points.length * Math.min(1, reveal) * (0.6 + Math.random() * 0.38),
+            );
+            const head = r.points[Math.min(r.points.length - 1, headIdx)];
+            pt.x0 = ox + head.x + (Math.random() - 0.5) * 26;
+            pt.y0 = oy + head.y + (Math.random() - 0.5) * 52;
+            pt.t0 = now;
+            pt.life = 1.0 + Math.random() * 0.7;
+            age = 0;
+          }
+          const aFrac = age / pt.life;
+          const sx = pt.x0 + pt.vx * age;
+          const sy = pt.y0 + pt.vy * age + Math.sin(now * 2 + pt.phase) * 3;
           if (sx < -30 || sx > W + 30 || inPanel(sx, sy)) continue;
-          const tw = 0.45 + 0.75 * Math.pow(0.5 + 0.5 * Math.sin(now * s.speed + s.phase), 2);
-          const f = life * tw * (1.5 - s.frac * 0.5);
+          const env = Math.sin(Math.PI * Math.min(1, aFrac));
+          const tw = 0.6 + 0.4 * Math.sin(now * pt.speed + pt.phase);
+          const f = life * env * tw * 0.85;
           if (f < 0.06) continue;
-          stamp(ctx, sprite(s.ch, shade(RIBBON_IVORY, bucket(f, 0.05)), s.scale), sx, sy, false);
+          const sc = aFrac < 0.33 ? 2.0 : aFrac < 0.66 ? 1.5 : 1.1;
+          stamp(ctx, sprite(pt.ch, shade(RIBBON_IVORY, bucket(f, 0.05)), sc), sx, sy, false);
         }
       }
     };
