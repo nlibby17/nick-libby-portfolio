@@ -16,12 +16,12 @@
   --gold: #c9a227;
   --gold-bright: #e8c95d;
 
-  --splash-dunkin: #ff671f;
-  --splash-stock: #35c759;
-  --splash-portal: #00a2ff;
+  --splash-dunkin: #e0651f;
+  --splash-stock: #2f9e4f;
+  --splash-portal: #2b8fd4;
 
-  --font-mono: "Cutive Mono", "Courier New", monospace;
-  --font-art: "IBM Plex Mono", "DejaVu Sans Mono", monospace;
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
+  --font-art: "Courier New", Courier, monospace;
 
   --measure: 65ch;
   --page-width: 72rem;
@@ -144,8 +144,8 @@ a {
 
 .hero h1 {
   font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  font-weight: 600;
+  font-size: clamp(3rem, 8vw, 5.2rem);
   letter-spacing: 0.14em;
   margin: 0.75rem 0 0.25rem;
 }
@@ -161,15 +161,43 @@ a {
 
 .hero .pitch {
   font-family: var(--font-mono);
-  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-size: clamp(1.02rem, 2.1vw, 1.28rem);
   letter-spacing: 0.05em;
   color: var(--ink);
-  margin: 1.1rem auto 0;
-  max-width: 40ch;
+  margin: 0 auto;
+  max-width: 44ch;
 }
 
 .hero .pitch-frame {
-  margin-top: 1.8rem;
+  margin-top: 1.1rem;
+}
+
+.hero .pitch-frame .deco-divider {
+  margin: 0.9rem auto 0;
+}
+
+/* Fixed ASCII sunburst backdrop for the whole homepage:
+   present at every scroll position, content floats above it. */
+.sun-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.landing-main {
+  position: relative;
+  z-index: 1;
+}
+
+.site-nav,
+.site-footer {
+  position: relative;
+  z-index: 1;
+}
+
+.hero .cup {
+  margin-top: 2.2rem;
 }
 
 .hero .cup {
@@ -467,6 +495,8 @@ a {
 
 .about-stage-content h1 {
   margin-top: 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
 }
 
 .about-panel {
@@ -481,6 +511,32 @@ a {
 .about-panel .about-copy {
   margin: 0 auto;
   text-align: center;
+}
+
+/* Project pages: centered layout, standing law for every
+   project page and any feature added to them later
+   (Nick, Oct 25, 2026). */
+.project-page {
+  text-align: center;
+}
+
+.project-page .lede,
+.project-page section p {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.project-page .stat-row {
+  justify-content: center;
+}
+
+.project-page .shot {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.project-page .backlink {
+  display: inline-block;
 }
 
 /* ---------- small screens ---------- */

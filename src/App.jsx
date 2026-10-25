@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Hero from "./components/Hero.jsx";
 import ProjectCard from "./components/ProjectCard.jsx";
+import AsciiField from "./components/AsciiField.jsx";
 import ProjectPage from "./pages/ProjectPage.jsx";
 import AboutPage from "./pages/AboutPage.jsx";
 import { projects, getProject } from "./data/projects.js";
@@ -75,9 +76,12 @@ function Footer() {
 function Landing({ onNavigate }) {
   return (
     <>
-      <Hero />
-      <hr className="deco-divider deco-divider--wide" aria-hidden="true" />
-      <section className="cards" id="projects">
+      <div className="sun-backdrop" aria-hidden="true">
+        <AsciiField variant="sun" anchor="top" opacity={0.5} />
+      </div>
+      <main className="landing-main">
+        <Hero />
+        <section className="cards" id="projects">
         {projects.map((p) => (
           <ProjectCard key={p.slug} project={p} onNavigate={onNavigate} />
         ))}
@@ -98,6 +102,7 @@ function Landing({ onNavigate }) {
           More about me →
         </a>
       </section>
+      </main>
     </>
   );
 }

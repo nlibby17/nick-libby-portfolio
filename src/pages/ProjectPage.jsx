@@ -1,6 +1,6 @@
 export default function ProjectPage({ project, onNavigate }) {
   return (
-    <main className="page" style={{ "--splash": project.splash }}>
+    <main className="page project-page" style={{ "--splash": project.splash }}>
       <a
         className="backlink"
         href="/"

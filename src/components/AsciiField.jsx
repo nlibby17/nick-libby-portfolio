@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import desktopGrid from "../assets/grass-grid-desktop.json";
 import mobileGrid from "../assets/grass-grid-mobile.json";
+import sunGrid from "../assets/sun-grid.json";
 
 /*
   AsciiField: draws a converter grid (characters + per-cell palette
@@ -16,7 +17,7 @@ import mobileGrid from "../assets/grass-grid-mobile.json";
 */
 const CELL_ASPECT = 0.6;
 
-export default function AsciiField({ opacity = 0.55 }) {
+export default function AsciiField({ opacity = 0.55, variant = "grass", anchor = "center" }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -29,7 +30,8 @@ export default function AsciiField({ opacity = 0.55 }) {
       const w = parent.clientWidth;
       const h = parent.clientHeight;
       if (!w || !h) return;
-      const grid = w < 720 ? mobileGrid : desktopGrid;
+      const grid =
+        variant === "sun" ? sunGrid : w < 720 ? mobileGrid : desktopGrid;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
@@ -44,7 +46,7 @@ export default function AsciiField({ opacity = 0.55 }) {
       const gridW = grid.cols * CELL_ASPECT * u;
       const gridH = grid.rows * u;
       const ox = (w - gridW) / 2;
-      const oy = (h - gridH) / 2;
+      const oy = anchor === "top" ? 0 : (h - gridH) / 2;
       ctx.font = `${u}px "Courier New", Courier, monospace`;
       ctx.textBaseline = "top";
       let lastColor = null;
@@ -79,7 +81,7 @@ export default function AsciiField({ opacity = 0.55 }) {
       ro.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [variant, anchor]);
 
   return (
     <canvas

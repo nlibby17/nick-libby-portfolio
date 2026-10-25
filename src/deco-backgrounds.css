@@ -143,6 +143,23 @@
   --deco-corner-opacity: 0.8;
 }
 
+/* Quiet variant (Nick, Oct 25, 2026): single-step brackets in
+   ivory instead of the two-step gold. For the project title
+   cards, where gold clashed with each project's splash color
+   and the double step read slightly too busy. */
+.deco-corners--quiet {
+  --deco-corner-size: 30px;
+  --deco-corner-opacity: 0.55;
+}
+
+.deco-corners--quiet::after {
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2236%22%20height%3D%2236%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cpath%20d%3D%22M33%203%20L16%203%20L16%208%20L11%208%20L11%2013%20L6%2013%20L6%2018%20L3%2018%20L3%2033%22%20fill%3D%22none%22%20stroke%3D%22%23f2ede1%22%20stroke-opacity%3D%220.9%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22square%22%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2236%22%20height%3D%2236%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cpath%20d%3D%22M3%203%20L20%203%20L20%208%20L25%208%20L25%2013%20L30%2013%20L30%2018%20L33%2018%20L33%2033%22%20fill%3D%22none%22%20stroke%3D%22%23f2ede1%22%20stroke-opacity%3D%220.9%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22square%22%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2236%22%20height%3D%2236%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cpath%20d%3D%22M33%2033%20L16%2033%20L16%2028%20L11%2028%20L11%2023%20L6%2023%20L6%2018%20L3%2018%20L3%203%22%20fill%3D%22none%22%20stroke%3D%22%23f2ede1%22%20stroke-opacity%3D%220.9%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22square%22%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2236%22%20height%3D%2236%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cpath%20d%3D%22M3%2033%20L20%2033%20L20%2028%20L25%2028%20L25%2023%20L30%2023%20L30%2018%20L33%2018%20L33%203%22%20fill%3D%22none%22%20stroke%3D%22%23f2ede1%22%20stroke-opacity%3D%220.9%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22square%22%2F%3E%3C%2Fsvg%3E");
+}
+
 /* ============================================================
    4. SECTION DIVIDER
    <hr class="deco-divider"> or any block element. Hairlines run

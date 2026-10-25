@@ -20,9 +20,6 @@ export default function AboutPage() {
       <div className="about-stage">
         <AsciiField opacity={0.6} />
         <div className="about-stage-content">
-          <p className="kicker" style={{ color: "var(--gold)" }}>
-            About
-          </p>
           <h1>About</h1>
           <div className="about-panel deco-corners">
             <div className="about-copy">
