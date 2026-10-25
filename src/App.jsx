@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Hero from "./components/Hero.jsx";
 import ProjectCard from "./components/ProjectCard.jsx";
-import AsciiField from "./components/AsciiField.jsx";
+import WarpedSunField from "./components/WarpedSunField.jsx";
 import ProjectPage from "./pages/ProjectPage.jsx";
 import AboutPage from "./pages/AboutPage.jsx";
 import { projects, getProject } from "./data/projects.js";
@@ -76,7 +76,7 @@ function Landing({ onNavigate }) {
   return (
     <>
       <div className="sun-backdrop" aria-hidden="true">
-        <AsciiField variant="sun" anchor="top" opacity={0.5} />
+        <WarpedSunField opacity={0.5} />
       </div>
       <main className="landing-main">
         <Hero onNavigate={onNavigate} />

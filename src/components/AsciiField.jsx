@@ -6,18 +6,19 @@ import sunGrid from "../assets/sun-grid.json";
 /*
   AsciiField: draws a converter grid (characters + per-cell palette
   colors, produced by tools/ascii-converter/ascii_convert.py --json)
-  onto a canvas that COVERS its container. The grid is never
-  stretched: the cell size is chosen so the grid covers the box,
-  centered, with any overflow cropped at the edges, the same rule
-  as background-size: cover for an image. Two grids ship (desktop
-  340 cols, mobile 176 cols) so phones get a grid rendered at
-  their size instead of a shrunk desktop one. Cell aspect 0.6
-  matches Courier-family advance width, the traditional ASCII
-  art face; Nick's directive, Oct 25, 2026.
+  onto a canvas filling its container. Cell aspect 0.6 matches
+  Courier-family advance width, the traditional ASCII art face;
+  Nick's directive, Oct 25, 2026.
 
-  Background fields only (grass for About, sun for the homepage
-  backdrop). The hero cup has its own renderer, CupCanvas, which
-  draws real rotating geometry instead of a fixed grid.
+  The grass field sizes its glyphs from the container width and
+  repeats one grid vertically, mirroring alternate repeats. That
+  distinction matters on the tall mobile About stage: forcing a
+  short grid to "cover" thousands of pixels of height by itself
+  inflated each glyph until the grass pattern disappeared. The
+  sun branch retains the older cover-and-crop behavior.
+
+  The hero cup has its own renderer, CupCanvas, which draws real
+  rotating geometry instead of a fixed grid.
 */
 const CELL_ASPECT = 0.6;
 
@@ -45,6 +46,50 @@ export default function AsciiField({ opacity = 0.55, variant = "grass", anchor =
       ctx.scale(dpr, dpr);
       ctx.fillStyle = "#0a0a09";
       ctx.fillRect(0, 0, w, h);
+
+      if (variant === "grass") {
+        // Width sets the natural glyph scale. Repeat the grid down
+        // tall stages instead of enlarging glyphs to cover height.
+        const u = w / (grid.cols * CELL_ASPECT);
+        const tileW = w;
+        const tileH = grid.rows * u;
+        const tile = document.createElement("canvas");
+        tile.width = Math.max(1, Math.round(tileW * dpr));
+        tile.height = Math.max(1, Math.round(tileH * dpr));
+        const tileCtx = tile.getContext("2d");
+        tileCtx.scale(dpr, dpr);
+        tileCtx.font = `${u}px "Courier New", Courier, monospace`;
+        tileCtx.textBaseline = "top";
+        let tileColor = null;
+        for (let y = 0; y < grid.rows; y++) {
+          const line = grid.lines[y];
+          const rowCells = grid.cells[y];
+          for (let x = 0; x < grid.cols; x++) {
+            const ci = rowCells[x];
+            if (ci < 0) continue;
+            const color = grid.palette[ci];
+            if (color !== tileColor) {
+              tileCtx.fillStyle = color;
+              tileColor = color;
+            }
+            tileCtx.fillText(line[x], x * CELL_ASPECT * u, y * u);
+          }
+        }
+
+        for (let tileY = 0, tileIndex = 0; tileY < h; tileY += tileH, tileIndex++) {
+          if (tileIndex % 2 === 0) {
+            ctx.drawImage(tile, 0, tileY, tileW, tileH);
+          } else {
+            ctx.save();
+            ctx.translate(0, tileY + tileH);
+            ctx.scale(1, -1);
+            ctx.drawImage(tile, 0, 0, tileW, tileH);
+            ctx.restore();
+          }
+        }
+        return;
+      }
+
       // cover: pick the cell height that covers both dimensions
       const u = Math.max(w / (grid.cols * CELL_ASPECT), h / grid.rows);
       const gridW = grid.cols * CELL_ASPECT * u;

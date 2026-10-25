@@ -21,7 +21,7 @@ export default function AboutPage() {
         <AsciiField opacity={0.6} />
         <div className="about-stage-content">
           <h1>About</h1>
-          <div className="about-panel deco-corners">
+          <div className="about-panel deco-corners deco-corners--quiet">
             <div className="about-copy">
               <p>
                 I'm Nick Libby, an aspiring data analyst and a student in

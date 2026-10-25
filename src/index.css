@@ -198,7 +198,10 @@ a {
   position: relative;
   width: min(290px, 72vw);
   aspect-ratio: 582 / 830;
-  margin: 1.8rem auto 0.4rem;
+  /* Proximity grouping (Nick, Oct 25, 2026): the cup belongs
+     to the featured project card below it, not to the title
+     block above. Generous air above, tight below. */
+  margin: 3.4rem auto 0.2rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
