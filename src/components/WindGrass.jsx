@@ -8,41 +8,36 @@ import { bucket } from "../lib/glyphAtlas.js";
   WindGrass: the About page grass field with weather (Nick's
   plan, approved Oct 25, 2026, streak count set to 3-4 by him).
 
-  Two stacked canvases. The base is the static blades-C field
-  exactly as before, drawn once per resize. The wind layer is
-  transparent until weather happens:
+  ONE canvas, one offscreen base. The base field is rendered
+  once per resize into an offscreen canvas using the same
+  sprite stamps the wind uses, and each wind frame blits it
+  back before painting weather. (The first build stacked a
+  second canvas for the wind and erased its gust area with a
+  solid rectangle; the rectangle's fill could not match the
+  blended backdrop beneath the translucent base canvas, so a
+  tinted pane visibly slid across the screen. Nick caught it
+  the same day. Erasing inside the same canvas, with the same
+  stamps, makes the gust neighborhood seamless.)
 
-  - Gusts are events. Every 6-10 seconds a gust crosses in
-    about 3.2 seconds along a gently arced path. Inside the
-    gust's neighborhood the wind layer paints out the base and
-    re-stamps those blades leaned along the path's direction,
-    fluttering at the peak, brightened as if the blades turned
-    to catch light (the curl: lean follows the arc's tangent,
-    so blades tip right, then right-and-down, then settle).
-  - 3-4 faint streak trails ride each gust, dashes following
-    the same arced path, the wind made visible.
-  - Between gusts the field rests with a sparse brightness
-    shimmer on a few hundred blades, so it is never quite dead
-    at zero per-frame cost beyond those stamps.
-
-  Perf discipline, learned the hard way on the homepage: all
-  glyphs are pre-rendered sprite stamps, nothing rotates, the
-  wind layer only redraws its gust neighborhood, cells hidden
-  under the About panel are never stamped, and the layer idles
-  at about 20fps. Reduced motion gets the static field only.
+  Weather: gusts are events. Every 6-10 seconds a gust crosses
+  in about 3.2 seconds along a gently arced path; blades inside
+  it lean along the path's direction, flutter at the peak, and
+  brighten as if turning to catch light (the curl: the lean
+  follows the arc's tangent). 3-4 faint streak trails ride
+  each gust. Between gusts, a sparse brightness shimmer keeps
+  the field from looking dead. Cells hidden under the About
+  panel are never stamped. Reduced motion: static field only.
 */
 const CELL_ASPECT = 0.6;
 const STREAK_CHARS = ["-", "~", "·", "–"];
 
 export default function WindGrass({ opacity = 0.6 }) {
-  const baseRef = useRef(null);
-  const windRef = useRef(null);
+  const ref = useRef(null);
 
   useEffect(() => {
-    const base = baseRef.current;
-    const wind = windRef.current;
-    if (!base || !wind) return;
-    const stage = base.parentElement;
+    const canvas = ref.current;
+    if (!canvas) return;
+    const stage = canvas.parentElement;
     let raf = 0;
     let cells = [];
     let panelRect = null;
@@ -51,9 +46,9 @@ export default function WindGrass({ opacity = 0.6 }) {
     let W = 0;
     let H = 0;
     let visible = true;
-    const dim = Math.min(1, opacity * 1.08);
+    let baseImg = null;
 
-    // --- sprite stamps, top-left anchored to match fillText ---
+    // --- sprite stamps, top-left anchored to match cell origins ---
     const spriteCache = new Map();
     const sprite = (ch, colorCss) => {
       const key = `${ch}|${colorCss}`;
@@ -90,51 +85,17 @@ export default function WindGrass({ opacity = 0.6 }) {
       if (!W || !H) return;
       grid = W < 720 ? mobileGrid : desktopGrid;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
-      for (const cv of [base, wind]) {
-        cv.width = Math.round(W * dpr);
-        cv.height = Math.round(H * dpr);
-        cv.style.width = `${W}px`;
-        cv.style.height = `${H}px`;
-      }
-      const ctx = base.getContext("2d");
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = "#0a0a09";
-      ctx.fillRect(0, 0, W, H);
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      canvas.style.width = `${W}px`;
+      canvas.style.height = `${H}px`;
       u = W / (grid.cols * CELL_ASPECT);
-      const tileH = grid.rows * u;
-      const tile = document.createElement("canvas");
-      tile.width = Math.max(1, Math.round(W * dpr));
-      tile.height = Math.max(1, Math.round(tileH * dpr));
-      const tg = tile.getContext("2d");
-      tg.scale(dpr, dpr);
-      tg.font = `${u}px "Courier New", Courier, monospace`;
-      tg.textBaseline = "top";
-      let lastColor = null;
-      for (let y = 0; y < grid.rows; y++) {
-        for (let x = 0; x < grid.cols; x++) {
-          const ci = grid.cells[y][x];
-          if (ci < 0) continue;
-          const color = grid.palette[ci];
-          if (color !== lastColor) {
-            tg.fillStyle = color;
-            lastColor = color;
-          }
-          tg.fillText(grid.lines[y][x], x * CELL_ASPECT * u, y * u);
-        }
-      }
-      for (let ty = 0, idx = 0; ty < H; ty += tileH, idx++) {
-        if (idx % 2 === 0) {
-          ctx.drawImage(tile, 0, ty, W, tileH);
-        } else {
-          ctx.save();
-          ctx.translate(0, ty + tileH);
-          ctx.scale(1, -1);
-          ctx.drawImage(tile, 0, 0, W, tileH);
-          ctx.restore();
-        }
-      }
-      // flat cell list in stage coordinates for the wind layer
+      spriteCache.clear();
+
+      // flat cell list in stage coordinates (mirrored tiles
+      // repeat vertically, as the static field always did)
       cells = [];
+      const tileH = grid.rows * u;
       const cellW = CELL_ASPECT * u;
       for (let ty = 0, idx = 0; ty < H; ty += tileH, idx++) {
         const flip = idx % 2 === 1;
@@ -142,18 +103,33 @@ export default function WindGrass({ opacity = 0.6 }) {
           for (let x = 0; x < grid.cols; x++) {
             const ci = grid.cells[y][x];
             if (ci < 0) continue;
-            const gy = flip ? ty + tileH - y * u - u : ty + y * u;
             cells.push({
               x: x * cellW,
-              y: gy,
+              y: flip ? ty + tileH - y * u - u : ty + y * u,
               ch: grid.lines[y][x],
               col: grid.palette[ci],
               flip,
-              hash: ((x * 73856093) ^ (y * 19349663) ^ (idx * 83492791)) % 1000 / 1000,
+              hash: (((x * 73856093) ^ (y * 19349663) ^ (idx * 83492791)) >>> 0) % 1000 / 1000,
             });
           }
         }
       }
+
+      baseImg = document.createElement("canvas");
+      baseImg.width = canvas.width;
+      baseImg.height = canvas.height;
+      const bg = baseImg.getContext("2d");
+      bg.scale(dpr, dpr);
+      bg.fillStyle = "#0a0a09";
+      bg.fillRect(0, 0, W, H);
+      for (const cell of cells) {
+        stamp(bg, sprite(cell.ch, cell.col), cell.x, cell.y, cell.flip);
+      }
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(1, 0, 0, 1);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(baseImg, 0, 0);
+
       const panel = stage.querySelector(".about-panel");
       if (panel) {
         const sr = stage.getBoundingClientRect();
@@ -167,7 +143,6 @@ export default function WindGrass({ opacity = 0.6 }) {
       } else {
         panelRect = null;
       }
-      spriteCache.clear();
     };
 
     const inPanel = (x, y) =>
@@ -195,20 +170,22 @@ export default function WindGrass({ opacity = 0.6 }) {
     };
 
     const drawWind = (now) => {
-      const ctx = wind.getContext("2d");
+      if (!baseImg) return;
+      const ctx = canvas.getContext("2d");
       const dpr = Math.min(2, window.devicePixelRatio || 1);
+      ctx.setTransform(1, 0, 0, 1);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(baseImg, 0, 0);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, W, H);
       if (!gust && now >= nextGustAt) spawnGust(now);
 
       // ambient shimmer: a few hundred blades breathing light
-      const shimCount = 240;
-      for (let i = 0; i < shimCount; i++) {
+      for (let i = 0; i < 240; i++) {
         const cell = cells[(Math.random() * cells.length) | 0];
         if (!cell || inPanel(cell.x, cell.y)) continue;
         const b = 1 + 0.14 * Math.sin(now * 0.9 + cell.hash * 6.28);
         if (b <= 1.03) continue;
-        stamp(ctx, sprite(cell.ch, shade(cell.col, bucket(b * dim, 0.06))), cell.x, cell.y, cell.flip);
+        stamp(ctx, sprite(cell.ch, shade(cell.col, bucket(b, 0.06))), cell.x, cell.y, cell.flip);
       }
 
       if (!gust) return;
@@ -226,18 +203,17 @@ export default function WindGrass({ opacity = 0.6 }) {
       const dirX = Math.cos(theta);
       const dirY = Math.sin(theta);
       const box = {
-        x0: gx - 2.3 * gust.sigmaX,
-        x1: gx + 2.3 * gust.sigmaX,
-        y0: gy - 2.3 * gust.sigmaY,
-        y1: gy + 2.3 * gust.sigmaY,
+        x0: Math.max(0, gx - 2.3 * gust.sigmaX),
+        x1: Math.min(W, gx + 2.3 * gust.sigmaX),
+        y0: Math.max(0, gy - 2.3 * gust.sigmaY),
+        y1: Math.min(H, gy + 2.3 * gust.sigmaY),
       };
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
+      ctx.clip();
       ctx.fillStyle = "#0a0a09";
-      ctx.fillRect(
-        Math.max(0, box.x0),
-        Math.max(0, box.y0),
-        Math.min(W, box.x1) - Math.max(0, box.x0),
-        Math.min(H, box.y1) - Math.max(0, box.y0),
-      );
+      ctx.fillRect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
       for (const cell of cells) {
         const cx = cell.x + CELL_ASPECT * u * 0.5;
         const cy = cell.y + u * 0.5;
@@ -248,7 +224,7 @@ export default function WindGrass({ opacity = 0.6 }) {
         const g = Math.exp(-(dxn * dxn + dyn * dyn));
         const flutter = Math.sin(now * 11 + cell.hash * 6.28) * 1.6 * g * g;
         const lean = 8 * g + flutter;
-        const b = bucket((1 + 0.4 * g) * dim, 0.06);
+        const b = bucket(1 + 0.4 * g, 0.06);
         stamp(
           ctx,
           sprite(cell.ch, shade(cell.col, b)),
@@ -257,6 +233,7 @@ export default function WindGrass({ opacity = 0.6 }) {
           cell.flip,
         );
       }
+      ctx.restore();
       // streaks ride the gust, 3-4 visible trails
       const life = Math.sin(Math.PI * Math.min(1, Math.max(0, t)));
       for (const s of gust.streaks) {
@@ -305,19 +282,11 @@ export default function WindGrass({ opacity = 0.6 }) {
   }, [opacity]);
 
   return (
-    <>
-      <canvas
-        ref={baseRef}
-        className="ascii-field"
-        style={{ opacity }}
-        aria-hidden="true"
-      />
-      <canvas
-        ref={windRef}
-        className="ascii-field"
-        style={{ opacity: 1, zIndex: 1 }}
-        aria-hidden="true"
-      />
-    </>
+    <canvas
+      ref={ref}
+      className="ascii-field"
+      style={{ opacity }}
+      aria-hidden="true"
+    />
   );
 }
