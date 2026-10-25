@@ -177,20 +177,31 @@ a {
   pointer-events: none;
 }
 
-/* Particle disc canvases: the back half lives in the backdrop
-   stack; the front half floats above the page so its near arc
-   can pass in front of the cup. Neither takes pointer events. */
-.disc-canvas {
+/* Particle disc layers: centered on the cup stage at twice
+   its width, so the disc is ordinary page content that scrolls
+   with the cup instead of chasing it from a fixed overlay.
+   The back layer shares the cup canvas's z-index and sits
+   earlier in the DOM (under the cup); the front layer rides
+   above it. Neither takes pointer events. */
+.disc-layer {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 50%;
+  width: 200%;
+  aspect-ratio: 1.5;
+  transform: translate(-50%, -50%);
+  z-index: 0;
   pointer-events: none;
 }
 
-.disc-front {
-  position: fixed;
+.disc-layer--front {
+  z-index: 1;
+}
+
+.disc-fill {
+  position: absolute;
   inset: 0;
-  z-index: 4;
-  pointer-events: none;
+  display: block;
 }
 
 .landing-main {
@@ -216,8 +227,10 @@ a {
   aspect-ratio: 582 / 830;
   /* Proximity grouping (Nick, Oct 25, 2026): the cup belongs
      to the featured project card below it, not to the title
-     block above. Generous air above, tight below. */
-  margin: 3.4rem auto 0.2rem;
+     block above. Moved further down the same day so its role
+     as the Dunkin project's emblem reads at a glance: generous
+     air above, tight below. */
+  margin: 5.6rem auto 0.2rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

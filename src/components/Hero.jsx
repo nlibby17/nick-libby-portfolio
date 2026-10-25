@@ -1,4 +1,5 @@
 import CupCanvas from "./CupCanvas";
+import DiscCanvas from "./DiscCanvas.jsx";
 
 /*
   Hero order per Nick's direction (Oct 25, 2026): ornament,
@@ -51,7 +52,9 @@ export default function Hero({ onNavigate }) {
         role="img"
         aria-label="ASCII art of an iced coffee cup, tilted, with a straw"
       >
+        <DiscCanvas half="back" />
         <CupCanvas />
+        <DiscCanvas half="front" />
       </div>
     </header>
   );

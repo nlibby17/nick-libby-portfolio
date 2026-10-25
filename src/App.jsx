@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import Hero from "./components/Hero.jsx";
 import ProjectCard from "./components/ProjectCard.jsx";
 import AsciiField from "./components/AsciiField.jsx";
-import DiscCanvas from "./components/DiscCanvas.jsx";
 import ProjectPage from "./pages/ProjectPage.jsx";
 import AboutPage from "./pages/AboutPage.jsx";
 import { projects, getProject } from "./data/projects.js";
@@ -78,10 +77,6 @@ function Landing({ onNavigate }) {
     <>
       <div className="sun-backdrop" aria-hidden="true">
         <AsciiField variant="sun" opacity={0.5} />
-        <DiscCanvas half="back" />
-      </div>
-      <div className="disc-front" aria-hidden="true">
-        <DiscCanvas half="front" />
       </div>
       <main className="landing-main">
         <Hero onNavigate={onNavigate} />

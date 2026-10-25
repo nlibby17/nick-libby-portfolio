@@ -12,14 +12,17 @@ import { glyphSprite, drawSprite, bucket } from "../lib/glyphAtlas.js";
 
 /*
   DiscCanvas: one half of the particle disc around the hero
-  cup. half="back" lives in the sun backdrop and draws the far
-  arc; half="front" lives in a fixed overlay above the page
-  and draws the near arc in front of the cup. Both read the
-  shared spin clock and the same seeded particle set, so the
-  two halves are one disc. Particle behavior per the approved
-  prototype: Kepler speeds, tangential stretch, a brightness
-  boost on the side swinging toward the viewer, soft fades at
-  the band edges.
+  cup. The layers live INSIDE .cup-stage, absolutely centered
+  on it, so the disc is ordinary page content: it scrolls with
+  the document on the compositor and can never lag behind the
+  cup the way the fixed, rect-tracking overlays did (Nick's
+  report, Oct 25, 2026). All positions are local to the layer;
+  the only inputs are the shared spin clock and the layer's
+  own size. half="back" draws the far arc under the cup,
+  half="front" the near arc over it. Behavior per the approved
+  prototype: Kepler speeds, tangential stretch, brightness
+  boosted on the approach side, soft fades at the band edges,
+  glyph sprite stamps instead of fillText.
 */
 const CELL_ASPECT = 0.6;
 const particles = buildParticles(sunGrid);
@@ -30,14 +33,15 @@ export default function DiscCanvas({ half }) {
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    const parent = canvas.parentElement;
+    const layer = canvas.parentElement;
     let raf = 0;
+    let visible = true;
     const t0 = performance.now();
 
     const draw = () => {
-      const w = parent.clientWidth;
-      const h = parent.clientHeight;
-      if (!w || !h) return;
+      const w = layer.clientWidth;
+      const h = layer.clientHeight;
+      if (!w || !h || !visible) return;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       if (canvas.width !== Math.round(w * dpr)) {
         canvas.width = Math.round(w * dpr);
@@ -48,15 +52,16 @@ export default function DiscCanvas({ half }) {
       const ctx = canvas.getContext("2d");
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
-      const stage = document.querySelector(".cup-stage");
-      if (!stage) return;
-      const rect = stage.getBoundingClientRect();
-      if (rect.bottom < -320 || rect.top > h + 320 || rect.width < 10) return;
-      const comX = rect.left + rect.width / 2;
-      const comY = rect.top + rect.height / 2;
-      const sphereR = rect.width * 0.58;
+      const comX = w / 2;
+      const comY = h / 2;
+      // The layer is 200% of the stage width by CSS, and the
+      // sphere radius is 0.58 stage widths: 0.29 layer widths.
+      const sphereR = 0.29 * w;
       const t = spinState.time || (performance.now() - t0) / 1000;
-      const u = Math.max(w / (sunGrid.cols * CELL_ASPECT), h / sunGrid.rows);
+      const u = Math.max(
+        window.innerWidth / (sunGrid.cols * CELL_ASPECT),
+        window.innerHeight / sunGrid.rows,
+      );
       for (const p of particles) {
         const pt = discPoint(p, t, comX, comY, sphereR);
         if (pt.behind !== (half === "back")) continue;
@@ -80,10 +85,19 @@ export default function DiscCanvas({ half }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
+    const io = new IntersectionObserver(
+      (entries) => {
+        visible = entries[0].isIntersecting;
+      },
+      { rootMargin: "120px" },
+    );
+    io.observe(layer);
+
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
     if (reduced) {
+      visible = true;
       draw();
     } else {
       let tick = 0;
@@ -95,12 +109,17 @@ export default function DiscCanvas({ half }) {
       raf = requestAnimationFrame(loop);
     }
     const ro = new ResizeObserver(() => draw());
-    ro.observe(parent);
+    ro.observe(layer);
     return () => {
+      io.disconnect();
       ro.disconnect();
       cancelAnimationFrame(raf);
     };
   }, [half]);
 
-  return <canvas ref={ref} className="disc-canvas" aria-hidden="true" />;
+  return (
+    <div className={`disc-layer disc-layer--${half}`} aria-hidden="true">
+      <canvas ref={ref} className="disc-fill" />
+    </div>
+  );
 }
