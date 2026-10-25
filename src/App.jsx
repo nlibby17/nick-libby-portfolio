@@ -68,7 +68,6 @@ function Footer() {
           LinkedIn
         </a>
       </div>
-      <p className="fine">Nick Libby · Marlborough, Massachusetts</p>
     </footer>
   );
 }
@@ -80,7 +79,7 @@ function Landing({ onNavigate }) {
         <AsciiField variant="sun" anchor="top" opacity={0.5} />
       </div>
       <main className="landing-main">
-        <Hero />
+        <Hero onNavigate={onNavigate} />
         <section className="cards" id="projects">
         {projects.map((p) => (
           <ProjectCard key={p.slug} project={p} onNavigate={onNavigate} />

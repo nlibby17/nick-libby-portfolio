@@ -10,7 +10,7 @@ import cupArt from "../assets/cup.txt?raw";
   The cup is still the stand-in ASCII; the converted photoreal
   cup replaces it once Nick's specifications land.
 */
-export default function Hero() {
+export default function Hero({ onNavigate }) {
   const scrollTo = (id) => (e) => {
     e.preventDefault();
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -32,6 +32,16 @@ export default function Hero() {
         </a>
         <a className="btn" href="#contact" onClick={scrollTo("contact")}>
           Contact
+        </a>
+        <a
+          className="btn"
+          href="/about"
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigate("/about");
+          }}
+        >
+          About
         </a>
       </div>
       <pre className="cup" aria-label="ASCII art of an iced coffee cup">
