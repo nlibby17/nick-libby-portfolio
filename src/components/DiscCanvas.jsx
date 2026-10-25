@@ -14,7 +14,7 @@ import { glyphSprite, drawSprite, bucket } from "../lib/glyphAtlas.js";
   DiscCanvas: one half of the particle disc around the hero
   cup. The layers live INSIDE .cup-stage, absolutely centered
   on it, so the disc is ordinary page content: it scrolls with
-  the document on the compositor and can never lag behind the
+  the document on the compositor and cannot lag behind the
   cup the way the fixed, rect-tracking overlays did (Nick's
   report, Oct 25, 2026). All positions are local to the layer;
   the only inputs are the shared spin clock and the layer's

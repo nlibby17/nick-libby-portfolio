@@ -11,7 +11,7 @@ import ErrorBoundary from "../components/ErrorBoundary.jsx";
   distinct-blades render he chose) lives behind the text card as
   a full-stage background, visible around the card's borders,
   text front and center on a solid panel. The field renders at
-  page size from grid data; it is never a stretched image.
+  page size from grid data; it is not a stretched image.
   The ASCII portrait joins this page when Nick supplies a
   source photo.
 */

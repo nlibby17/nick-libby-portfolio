@@ -2,7 +2,7 @@ import { Component } from "react";
 
 /*
   ErrorBoundary: a decorative layer (canvas fields, the cup,
-  the disc) must never take the page down with it. Added after
+  the disc) must not take the page down with it. Added after
   the Oct 25, 2026 About outage: a bad canvas call inside the
   grass field's effect threw, and with no boundary in the app,
   React unmounted the entire tree and left a black page. If a
