@@ -341,12 +341,22 @@ body {
 @keyframes vhs-track {
   0% {
     transform: translateY(0);
+    filter: brightness(1);
+  }
+  12% {
+    filter: brightness(1.22);
   }
   18% {
     transform: translateY(-4px);
   }
+  30% {
+    filter: brightness(0.93);
+  }
   34% {
     transform: translateY(-2.6px);
+  }
+  46% {
+    filter: brightness(1);
   }
   52% {
     transform: translateY(-4.6px);
@@ -354,6 +364,7 @@ body {
   70%,
   100% {
     transform: translateY(-4px);
+    filter: brightness(1);
   }
 }
 
@@ -365,20 +376,20 @@ body {
   12% {
     transform: translateX(2px);
     text-shadow:
-      2px 0 rgb(255 45 85 / 0.75),
-      -2px 0 rgb(0 229 255 / 0.75);
+      3px 0 rgb(255 45 85 / 0.9),
+      -3px 0 rgb(0 229 255 / 0.9);
   }
   26% {
-    transform: translateX(-1px);
+    transform: translateX(-2px);
     text-shadow:
-      2px 0 rgb(255 45 85 / 0.75),
-      -2px 0 rgb(0 229 255 / 0.75);
+      3px 0 rgb(255 45 85 / 0.9),
+      -3px 0 rgb(0 229 255 / 0.9);
   }
   44% {
     transform: translateX(1px);
     text-shadow:
-      1px 0 rgb(255 45 85 / 0.6),
-      -1px 0 rgb(0 229 255 / 0.6);
+      2px 0 rgb(255 45 85 / 0.7),
+      -2px 0 rgb(0 229 255 / 0.7);
   }
   62%,
   100% {
@@ -393,21 +404,26 @@ body {
     opacity: 0;
   }
   12% {
-    opacity: 0.85;
+    opacity: 0.95;
     clip-path: inset(8% 0 64% 0);
-    transform: translateX(-3px);
+    transform: translateX(-4px);
   }
   22% {
-    opacity: 0.85;
+    opacity: 0.95;
     clip-path: inset(58% 0 12% 0);
-    transform: translateX(3px);
+    transform: translateX(4px);
   }
   34% {
-    opacity: 0.7;
+    opacity: 0.85;
     clip-path: inset(30% 0 42% 0);
-    transform: translateX(-2px);
+    transform: translateX(-3px);
   }
-  46%,
+  46% {
+    opacity: 0.7;
+    clip-path: inset(72% 0 4% 0);
+    transform: translateX(2px);
+  }
+  58%,
   100% {
     opacity: 0;
     clip-path: inset(50% 0 50% 0);
@@ -415,8 +431,44 @@ body {
   }
 }
 
+@keyframes vhs-line {
+  0% {
+    top: 12%;
+    opacity: 0;
+  }
+  14% {
+    opacity: 0.5;
+  }
+  62% {
+    top: 82%;
+    opacity: 0.35;
+  }
+  78%,
+  100% {
+    top: 88%;
+    opacity: 0;
+  }
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 12%;
+  height: 1px;
+  background: rgb(242 237 225 / 0.8);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
 .card:hover {
-  animation: vhs-track 0.42s steps(1, end) 1;
+  animation: vhs-track 0.48s steps(1, end) 1;
+}
+
+.card:hover::before {
+  animation: vhs-line 0.48s linear 1;
 }
 
 .card h3 {
@@ -424,7 +476,7 @@ body {
 }
 
 .card:hover h3 {
-  animation: vhs-main 0.42s steps(1, end) 1;
+  animation: vhs-main 0.48s steps(1, end) 1;
 }
 
 .card h3::before {
@@ -438,11 +490,12 @@ body {
 }
 
 .card:hover h3::before {
-  animation: vhs-slice 0.42s steps(1, end) 1;
+  animation: vhs-slice 0.48s steps(1, end) 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .card:hover,
+  .card:hover::before,
   .card:hover h3,
   .card:hover h3::before {
     animation: none;
