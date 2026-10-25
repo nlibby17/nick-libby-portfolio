@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import desktopGrid from "../assets/grass-grid-desktop.json";
 import mobileGrid from "../assets/grass-grid-mobile.json";
 import sunGrid from "../assets/sun-grid.json";
+import cupGrid from "../assets/cup-grid.json";
 
 /*
   AsciiField: draws a converter grid (characters + per-cell palette
@@ -31,7 +32,13 @@ export default function AsciiField({ opacity = 0.55, variant = "grass", anchor =
       const h = parent.clientHeight;
       if (!w || !h) return;
       const grid =
-        variant === "sun" ? sunGrid : w < 720 ? mobileGrid : desktopGrid;
+        variant === "cup"
+          ? cupGrid
+          : variant === "sun"
+            ? sunGrid
+            : w < 720
+              ? mobileGrid
+              : desktopGrid;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);

@@ -108,11 +108,11 @@ a {
 
 .site-nav .brand {
   font-family: var(--font-mono);
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.22em;
   color: var(--ink);
   text-decoration: none;
-  font-size: 1.05rem;
+  font-size: 1.3rem;
 }
 
 .site-nav .links {
@@ -140,14 +140,6 @@ a {
   padding: 3.5rem 1.5rem 2.5rem;
   max-width: var(--page-width);
   margin: 0 auto;
-}
-
-.hero h1 {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: clamp(3rem, 8vw, 5.2rem);
-  letter-spacing: 0.14em;
-  margin: 0.75rem 0 0.25rem;
 }
 
 .hero .role {
@@ -196,18 +188,17 @@ a {
   z-index: 1;
 }
 
-.hero .cup {
-  margin-top: 2.2rem;
-}
-
-.hero .cup {
-  font-family: var(--font-art);
-  font-size: clamp(0.55rem, 1.6vw, 0.85rem);
-  line-height: 1.25;
-  color: var(--ink);
-  margin: 2rem auto 0.5rem;
-  display: inline-block;
-  text-align: left;
+/* The real cup (Nick's spec, Oct 25, 2026): converted photoreal
+   iced coffee, leaning at option B's angle, straight straw from
+   the center of the lid, monochrome ivory. Canvas grid cropped
+   tight to the cup (97 x 83 cells); the stage box matches the
+   grid's aspect (cols x 0.6 : rows) so cover-fit is exact.
+   Scaled a touch smaller than the old stand-in per Nick. */
+.cup-stage {
+  position: relative;
+  width: min(290px, 72vw);
+  aspect-ratio: 582 / 830;
+  margin: 1.8rem auto 0.4rem;
   animation: cup-sway 7s ease-in-out infinite alternate;
 }
 
@@ -221,7 +212,7 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero .cup {
+  .cup-stage {
     animation: none;
   }
 }
