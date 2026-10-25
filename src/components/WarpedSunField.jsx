@@ -13,9 +13,15 @@ import { spinState } from "../lib/spinState.js";
   - The strength curve is steep near the edge (cubic in the
     normalized distance), polite farther out, plus a faint long
     tail so distant rays still acknowledge the mass.
-  - Where the lensed source would fall inside the cup, the cell
-    is left dark: a moat. Where it lands just outside the cup,
-    the character is brightened: a photon ring.
+  - The mapping compresses distance-to-edge: a screen point at
+    distance d samples as if it sat at d / (1 + K * exp(-d/30)).
+    Incoming characters crowd against the silhouette instead
+    of vanishing, so there is no painted moat (v1's flaw, which
+    read as an outline gap following the cup).
+  - The photon ring is a screen-space band hugging the
+    silhouette, guaranteed continuous; inside the core the
+    field is also dimmed into a soft well so the ring and the
+    crowding have contrast to read against.
   - The silhouette (edge, moat, ring) comes from the cup
     renderer's own hit mask at the live spin phase, so the lens
     furniture follows the pose while the lens itself stays
@@ -28,10 +34,24 @@ import { spinState } from "../lib/spinState.js";
   the cup's neighborhood are redrawn, lensed, over it.
 */
 const CELL_ASPECT = 0.6;
-const CORE_DEFLECT = 90; // px of inward lens pull at the edge
-const TAIL_DEFLECT = 6; // px of pull at the core/tail boundary
-const RING_WIDTH = 10; // px of source distance that reads as the ring
+const LENS_K = 2.4; // crowding strength of the lens mapping
+const LENS_SCALE = 30; // px over which the crowding relaxes
+const RING_D = 7; // screen-space px band that reads as the ring
 const SDF_RES = 6; // px per distance-field cell
+
+function shade(color, f) {
+  let r, g, b;
+  if (color[0] === "#") {
+    const n = parseInt(color.slice(1), 16);
+    r = (n >> 16) & 255;
+    g = (n >> 8) & 255;
+    b = n & 255;
+  } else {
+    const m = color.match(/[\d.]+/g);
+    [r, g, b] = m.map(Number);
+  }
+  return `rgb(${Math.round(r * f)},${Math.round(g * f)},${Math.round(b * f)})`;
+}
 
 function brighten(hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -200,14 +220,12 @@ export default function WarpedSunField({ opacity = 0.5 }) {
           const vy = cy - comY;
           const r = Math.hypot(vx, vy);
           if (r < 1) continue;
-          let defl;
-          if (d <= coreReach) {
-            const t = 1 - d / coreReach;
-            defl = CORE_DEFLECT * t ** 3;
-          } else {
-            const t = 1 - (d - coreReach) / (tailReach - coreReach);
-            defl = TAIL_DEFLECT * t * t;
-          }
+          // Compression mapping: the source sits at a squeezed
+          // distance-to-edge, so defl never exceeds d and the
+          // sample cannot cross deep into the cup.
+          const dsTarget = d / (1 + LENS_K * Math.exp(-d / LENS_SCALE));
+          const defl = d - dsTarget;
+          const dimF = 1 - 0.38 * Math.exp(-((d / (coreReach * 1.4)) ** 2));
           const sx = cx - (vx / r) * defl;
           const sy = cy - (vy / r) * defl;
           const ssi = Math.min(gw - 1, Math.max(0, Math.floor((sx - x0) / SDF_RES)));
@@ -216,14 +234,25 @@ export default function WarpedSunField({ opacity = 0.5 }) {
           ctx.fillStyle = "#0a0a09";
           ctx.fillRect(px, py, cellW + 0.75, u + 0.75);
           last = null;
-          if (ds <= 0.5) continue; // moat: the lens ate this light
+          if (ds <= 0.5) {
+            // Rare grazing case: keep the pristine character,
+            // dimmed by the well, rather than opening a gap.
+            const ci0 = grid.cells[gy][gx];
+            if (ci0 >= 0) {
+              const c0 = shade(grid.palette[ci0], dimF);
+              ctx.fillStyle = c0;
+              last = c0;
+              ctx.fillText(grid.lines[gy][gx], px, py);
+            }
+            continue;
+          }
           const sgx = Math.round((sx - ox) / cellW);
           const sgy = Math.round((sy - oy) / u);
           if (sgx < 0 || sgx >= grid.cols || sgy < 0 || sgy >= grid.rows) continue;
           const ci = grid.cells[sgy][sgx];
           if (ci < 0) continue;
           let color = grid.palette[ci];
-          if (ds <= RING_WIDTH) color = brighten(color);
+          color = d <= RING_D ? brighten(color) : shade(color, dimF);
           if (color !== last) {
             ctx.fillStyle = color;
             last = color;

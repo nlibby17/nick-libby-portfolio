@@ -59,9 +59,23 @@ export default function CupCanvas() {
           const ch = RAMP[ci];
           if (ch === " ") continue;
           const f = 0.25 + 0.75 * v;
-          const color = `rgb(${Math.round(IVORY[0] * f * 255)},${Math.round(
-            IVORY[1] * f * 255,
-          )},${Math.round(IVORY[2] * f * 255)})`;
+          // Dunkin warmth (Nick, Oct 25, 2026): the dull ivory
+          // gets a subtle orange admixture, strongest in the
+          // mid-tones and toward the lower body, highlights
+          // staying near-cream. Keyed to the Dunkin splash.
+          const yNorm = y / (ROWS - 1);
+          const warmth = Math.min(
+            0.55,
+            0.12 +
+              0.28 * Math.sin(Math.PI * Math.min(1, Math.max(0, v))) +
+              0.2 * Math.max(0, (yNorm - 0.45) / 0.55),
+          );
+          const cr = IVORY[0] * (1 - warmth) + 1.0 * warmth;
+          const cg = IVORY[1] * (1 - warmth) + 0.55 * warmth;
+          const cb = IVORY[2] * (1 - warmth) + 0.22 * warmth;
+          const color = `rgb(${Math.round(cr * f * 255)},${Math.round(
+            cg * f * 255,
+          )},${Math.round(cb * f * 255)})`;
           if (color !== last) {
             ctx.fillStyle = color;
             last = color;

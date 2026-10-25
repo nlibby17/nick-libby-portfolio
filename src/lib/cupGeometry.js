@@ -53,7 +53,13 @@ const STRAW_R = 0.115;
 const STRAW_Y0 = -0.8;
 const STRAW_Y1 = 2.62;
 const LEAN = (-18 * Math.PI) / 180;
-const ELEV = (16 * Math.PI) / 180;
+// Camera elevation. The sign matters: positive ELEV placed the
+// camera BELOW the model's center, looking up, so the lid top
+// stayed edge-on through the whole spin (Nick caught this from
+// the live site, Oct 25, 2026). Negative puts the camera above,
+// looking down, and the lid top opens toward the viewer once
+// per turn as the lean sweeps past.
+const ELEV = (-20 * Math.PI) / 180;
 
 function bodyTexture(theta, y) {
   // Nick, Oct 25, 2026: the cup's contents are gone entirely.
