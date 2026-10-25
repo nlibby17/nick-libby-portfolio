@@ -4,6 +4,7 @@
   project or reordering the lineup is an edit here, not a rebuild.
   splash: the ONE signature color allowed on that project's page.
 */
+import dunkinFinal from "../assets/dunkin-final.jpg";
 
 export const projects = [
   {
@@ -21,19 +22,43 @@ export const projects = [
       { value: "86.1", label: "driving hours" },
     ],
     lede: "One state, every store, one route.",
+    backdrop: "sprinkles",
+    flankCups: true,
+    video: {
+      heading: "Watch",
+      body: "The full route, drawn stop by stop.",
+      id: "rgGDGjJWyH4",
+      poster: dunkinFinal,
+      label: "Watch the route video",
+      posterAlt:
+        "Final frame of the route video: the completed tour drawn across Massachusetts, dashboard reading 2,356.9 miles and 1,019 of 1,019 stops",
+    },
+    pipelineAfter: 1,
+    pipeline: {
+      heading: "How it was built",
+      steps: [
+        {
+          title: "Three sources",
+          body: "Locations pulled from OpenStreetMap, Overture Maps, and Dunkin's own store directory. No two sources agreed on the full set, and each had listings the others missed.",
+        },
+        {
+          title: "Checked by hand",
+          body: "Listings were compared against each other, duplicates merged, and doubtful pins checked one by one before the route was drawn. A listing had to prove itself; a pin on a map was not enough. The judgment calls were logged as they were made.",
+        },
+        {
+          title: "The solve",
+          body: "A solver (Google OR-Tools) sequenced the stops over real road distances. The result is the best tour found, not a proven optimum. A second solve, given 30 minutes, returned the same 2,356.9 miles.",
+        },
+        {
+          title: "The render",
+          body: "The finished tour, drawn stop by stop into the video at the top of this page, dashboard and all, from the same data as the route itself.",
+        },
+      ],
+    },
     sections: [
       {
         heading: "The route",
         body: "The finished tour runs 2,356.9 miles and 86.1 driving hours across 1,019 stops. The map and the numbers above are the project; everything else here is just how they were earned.",
-      },
-      {
-        heading: "Built from more than one source",
-        body: "Location data from different sources rarely agrees. Listings were compared against each other, duplicates were merged, and doubtful pins were checked by hand before the route was drawn. A listing had to prove itself; a pin on a map was not enough.",
-      },
-      {
-        heading: "Watch",
-        body: "The full route, drawn stop by stop.",
-        link: { label: "Watch the route video", href: "https://youtu.be/EgDIaHsu0is" },
       },
       {
         heading: "Code",

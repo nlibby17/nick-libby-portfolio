@@ -1,53 +1,131 @@
-export default function ProjectPage({ project, onNavigate }) {
-  return (
-    <main className="page project-page" style={{ "--splash": project.splash }}>
-      <a
-        className="backlink"
-        href="/"
-        onClick={(e) => {
-          e.preventDefault();
-          onNavigate("/");
-        }}
-      >
-        ← All projects
-      </a>
-      <p className="kicker" style={{ marginTop: "1.6rem" }}>
-        {project.status ? project.status : "Project"}
-      </p>
-      <h1>{project.title}</h1>
-      <p className="lede">{project.lede}</p>
+import VideoEmbed from "../components/VideoEmbed.jsx";
+import SprinkleField from "../components/SprinkleField.jsx";
+import SideCup from "../components/SideCup.jsx";
 
-      {project.stats && (
-        <div className="stat-row" style={{ marginTop: "1.2rem" }}>
-          {project.stats.map((s) => (
-            <span className="stat" key={s.label}>
-              <span className="value">{s.value}</span>
-              <span className="label">{s.label}</span>
-            </span>
-          ))}
+/*
+  ProjectPage: one centered template for every project,
+  driven entirely by src/data/projects.js. Optional fields
+  layer on per project without disturbing the others: a
+  video block under the stats, a pipeline of build steps
+  rendered between sections (pipelineAfter counts the
+  sections it follows), a named ASCII backdrop field, and
+  the mirrored SideCup pair flanking the top.
+*/
+export default function ProjectPage({ project, onNavigate }) {
+  const renderSection = (section) => (
+    <section key={section.heading}>
+      <h2>{section.heading}</h2>
+      <p>{section.body}</p>
+      {section.images &&
+        section.images.map((img) => (
+          <figure key={img.src} style={{ margin: 0 }}>
+            <img className="shot" src={img.src} alt={img.alt} />
+            <figcaption className="caption">{img.caption}</figcaption>
+          </figure>
+        ))}
+      {section.link && (
+        <p>
+          <a href={section.link.href} target="_blank" rel="noreferrer">
+            {section.link.label}
+          </a>
+        </p>
+      )}
+    </section>
+  );
+
+  const pipelineNode = project.pipeline ? (
+    <section className="pipeline" key="pipeline">
+      <h2>{project.pipeline.heading}</h2>
+      <div className="pipe-flow">
+        {project.pipeline.steps.map((step, i) => (
+          <div className="pipe-step" key={step.title}>
+            {i > 0 && (
+              <div className="pipe-run" aria-hidden="true">
+                <div className="pipe-flange" />
+                <div className="pipe-body" />
+              </div>
+            )}
+            <h3 className="pipe-title">{step.title}</h3>
+            <p>{step.body}</p>
+          </div>
+        ))}
+        <div className="pipe-run pipe-run--end" aria-hidden="true">
+          <div className="pipe-body" />
+          <div className="pipe-flange" />
+        </div>
+      </div>
+    </section>
+  ) : null;
+
+  const pipeAt = project.pipeline
+    ? (project.pipelineAfter ?? project.sections.length)
+    : -1;
+  const flow = [];
+  project.sections.forEach((section, i) => {
+    flow.push(renderSection(section));
+    if (pipelineNode && i === pipeAt - 1) flow.push(pipelineNode);
+  });
+  if (pipelineNode && pipeAt >= project.sections.length) flow.push(pipelineNode);
+
+  return (
+    <main
+      className={`page project-page${project.backdrop ? " has-backdrop" : ""}`}
+      style={{ "--splash": project.splash }}
+    >
+      {project.backdrop === "sprinkles" && (
+        <div className="project-bg" aria-hidden="true">
+          <SprinkleField />
         </div>
       )}
+      {project.flankCups && (
+        <>
+          <SideCup direction={1} className="side-cup side-cup--left" />
+          <SideCup direction={-1} className="side-cup side-cup--right" />
+        </>
+      )}
+      <div className="project-content">
+        <a
+          className="backlink"
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigate("/");
+          }}
+        >
+          ← All projects
+        </a>
+        <p className="kicker" style={{ marginTop: "1.6rem" }}>
+          {project.status ? project.status : "Project"}
+        </p>
+        <h1>{project.title}</h1>
+        <p className="lede">{project.lede}</p>
 
-      {project.sections.map((section) => (
-        <section key={section.heading}>
-          <h2>{section.heading}</h2>
-          <p>{section.body}</p>
-          {section.images &&
-            section.images.map((img) => (
-              <figure key={img.src} style={{ margin: 0 }}>
-                <img className="shot" src={img.src} alt={img.alt} />
-                <figcaption className="caption">{img.caption}</figcaption>
-              </figure>
+        {project.stats && (
+          <div className="stat-row" style={{ marginTop: "1.2rem" }}>
+            {project.stats.map((s) => (
+              <span className="stat" key={s.label}>
+                <span className="value">{s.value}</span>
+                <span className="label">{s.label}</span>
+              </span>
             ))}
-          {section.link && (
-            <p>
-              <a href={section.link.href} target="_blank" rel="noreferrer">
-                {section.link.label}
-              </a>
-            </p>
-          )}
-        </section>
-      ))}
+          </div>
+        )}
+
+        {project.video && (
+          <section>
+            <h2>{project.video.heading}</h2>
+            <p>{project.video.body}</p>
+            <VideoEmbed
+              videoId={project.video.id}
+              poster={project.video.poster}
+              label={project.video.label}
+              posterAlt={project.video.posterAlt}
+            />
+          </section>
+        )}
+
+        {flow}
+      </div>
     </main>
   );
 }

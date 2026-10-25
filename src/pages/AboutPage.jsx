@@ -34,6 +34,15 @@ export default function AboutPage() {
                 dataset and a real question.
               </p>
               <p>
+                I use AI assistance as leverage when I build. It lets me
+                take on hard projects early, like resolving a thousand-plus
+                Dunkin' locations across conflicting sources into one
+                verified route, turning days of work into hours. I know
+                how to get real work out of these tools: I steer them,
+                check their output closely, and make the judgment calls
+                myself.
+              </p>
+              <p>
                 Recent projects include a recreation of every Dunkin'
                 location in Massachusetts, built from multiple location
                 data sources and resolved into a single route of 1,019

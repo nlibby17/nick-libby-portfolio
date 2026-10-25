@@ -806,3 +806,217 @@ body {
     gap: 1.5rem;
   }
 }
+
+/* ---------- project page dressing (v3.33) ----------
+   Optional per-project layers, Dunkin first: a full-width
+   ASCII backdrop field behind the column, a mirrored pair
+   of spinning cups flanking the top on wide screens, the
+   click-to-play video, and the build pipeline drawn as
+   actual pipes in the project's splash color. */
+
+.project-page.has-backdrop {
+  position: relative;
+}
+
+.project-bg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  margin-left: -50vw;
+  width: 100vw;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.sprinkle-fill {
+  position: sticky;
+  top: 0;
+  display: block;
+}
+
+.project-content {
+  position: relative;
+  z-index: 1;
+}
+
+.side-cup {
+  position: absolute;
+  top: 120px;
+  width: 180px;
+  aspect-ratio: 582 / 830;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.side-cup--left {
+  left: calc(50% - 780px);
+}
+
+.side-cup--right {
+  left: calc(50% + 600px);
+}
+
+.side-cup-fill {
+  display: block;
+}
+
+@media (max-width: 1620px) {
+  .side-cup {
+    display: none;
+  }
+}
+
+.video-facade {
+  display: block;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1920 / 1045;
+  margin-top: 1.2rem;
+  padding: 0;
+  border: 1px solid var(--panel-edge);
+  outline: 1px solid var(--gold);
+  outline-offset: 5px;
+  background: var(--panel);
+  cursor: pointer;
+}
+
+.video-facade img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.video-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 74px;
+  height: 74px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--gold-bright);
+  background: rgba(10, 10, 9, 0.55);
+}
+
+.video-play-tri {
+  width: 0;
+  height: 0;
+  border-left: 19px solid var(--gold-bright);
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  transform: rotate(-45deg);
+}
+
+.video-facade:hover .video-play {
+  background: var(--splash);
+}
+
+.video-facade-label {
+  position: absolute;
+  left: 50%;
+  bottom: 0.9rem;
+  transform: translateX(-50%);
+  padding: 0.3rem 0.8rem;
+  background: rgba(10, 10, 9, 0.65);
+  color: var(--ink);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.video-shell {
+  width: 100%;
+  aspect-ratio: 1920 / 1045;
+  margin-top: 1.2rem;
+  border: 1px solid var(--panel-edge);
+  outline: 1px solid var(--gold);
+  outline-offset: 5px;
+  background: #000;
+}
+
+.video-mount,
+.video-mount iframe,
+.video-shell iframe,
+.video-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.pipeline .pipe-title {
+  color: var(--splash);
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0.4rem 0;
+}
+
+.pipe-run {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0.7rem auto;
+}
+
+.pipe-body {
+  width: 44px;
+  height: 58px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--splash) 42%, black),
+    var(--splash) 38%,
+    color-mix(in srgb, var(--splash) 70%, white) 50%,
+    var(--splash) 62%,
+    color-mix(in srgb, var(--splash) 42%, black)
+  );
+}
+
+.pipe-body::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -45%;
+  height: 45%;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(255, 255, 255, 0.35),
+    transparent
+  );
+  animation: pipe-flow 2.8s linear infinite;
+}
+
+@keyframes pipe-flow {
+  to {
+    transform: translateY(330%);
+  }
+}
+
+.pipe-flange {
+  width: 72px;
+  height: 22px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--splash) 42%, black),
+    var(--splash) 38%,
+    color-mix(in srgb, var(--splash) 70%, white) 50%,
+    var(--splash) 62%,
+    color-mix(in srgb, var(--splash) 42%, black)
+  );
+  border-top: 1px solid rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pipe-body::after {
+    animation: none;
+  }
+}
