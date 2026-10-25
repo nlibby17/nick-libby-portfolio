@@ -23,8 +23,8 @@ import { spinState } from "../lib/spinState.js";
   the cup's neighborhood are redrawn, warped, over it.
 */
 const CELL_ASPECT = 0.6;
-const PUSH = 13; // px of outward deflection at the edge
-const PINCH = 5; // px of inward lens pinch, closest range only
+const PUSH = 46; // px of outward deflection before the lens pinch
+const PINCH = 12; // px of inward lens pinch, closest range only
 const SDF_RES = 6; // px per distance-field cell
 
 export default function WarpedSunField({ opacity = 0.5 }) {
@@ -185,7 +185,7 @@ export default function WarpedSunField({ opacity = 0.5 }) {
           if (gl < 1e-6) continue;
           const nx = gxGrad / gl;
           const ny = gyGrad / gl;
-          const g = (1 - d / reach) ** 2;
+          const g = (1 - d / reach) ** 1.25;
           const off = PUSH * g - PINCH * g * g;
           const sx = cx + nx * off;
           const sy = cy + ny * off;
