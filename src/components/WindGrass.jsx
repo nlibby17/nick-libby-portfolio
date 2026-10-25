@@ -48,6 +48,7 @@ import { bucket } from "../lib/glyphAtlas.js";
 const CELL_ASPECT = 0.6;
 const RIBBON_IVORY = "#f2ede1";
 const RIBBON_GOLD = "#e8c95d";
+const RIBBON_SCALE = 1.35;
 const SPARKLE_CHARS = ["+", "*", "·", "'", "."];
 
 // Glyph for a stretch of line travelling at angle ang (screen
@@ -101,22 +102,26 @@ const buildRibbon = (len, R, phase, spacing) => {
   const points = sampled.map((p, i) => {
     const q = sampled[Math.min(i + 1, n - 1)];
     const o = sampled[Math.max(i - 1, 0)];
+    const ang = Math.atan2(q[1] - o[1], q[0] - o[0]);
     const frac = i / Math.max(1, n - 1);
-    let ch = tangentChar(Math.atan2(q[1] - o[1], q[0] - o[0]));
+    let ch = tangentChar(ang);
     if (frac > 0.94 && i % 2 === 0) ch = "o";
-    return { x: p[0], y: p[1], ch, frac };
+    // path normal, used at draw time to lay the side passes
+    // that give the line its body
+    return { x: p[0], y: p[1], ch, frac, nx: -Math.sin(ang), ny: Math.cos(ang) };
   });
   const sparkles = [];
-  for (let j = 0; j < 12; j++) {
-    const frac = 0.45 + Math.random() * 0.55;
+  for (let j = 0; j < 26; j++) {
+    const frac = 0.4 + Math.random() * 0.6;
     const base = points[Math.min(n - 1, Math.round(frac * (n - 1)))];
     sparkles.push({
-      x: base.x + (Math.random() - 0.5) * 30,
-      y: base.y + (Math.random() - 0.5) * 56,
+      x: base.x + (Math.random() - 0.5) * 52,
+      y: base.y + (Math.random() - 0.5) * 150,
       frac,
       ch: SPARKLE_CHARS[(Math.random() * SPARKLE_CHARS.length) | 0],
       phase: Math.random() * 6.28,
       speed: 2 + Math.random() * 2.5,
+      scale: Math.random() < 0.35 ? 1.35 : 1,
     });
   }
   return { points, sparkles, len, phase };
@@ -144,20 +149,20 @@ export default function WindGrass({ opacity = 0.6 }) {
 
     // --- sprite stamps, top-left anchored to match cell origins ---
     const spriteCache = new Map();
-    const sprite = (ch, colorCss) => {
-      const key = `${ch}|${colorCss}`;
+    const sprite = (ch, colorCss, scale = 1) => {
+      const key = `${ch}|${colorCss}|${scale}`;
       let sp = spriteCache.get(key);
       if (sp) return sp;
       if (spriteCache.size > 9000) spriteCache.clear();
       const ss = 2;
-      const wCss = CELL_ASPECT * u + 4;
-      const hCss = u + 4;
+      const wCss = CELL_ASPECT * u * scale + 4;
+      const hCss = u * scale + 4;
       const c = document.createElement("canvas");
       c.width = Math.ceil(wCss * ss);
       c.height = Math.ceil(hCss * ss);
       const g = c.getContext("2d");
       g.scale(ss, ss);
-      g.font = `${u}px "Courier New", Courier, monospace`;
+      g.font = `${u * scale}px "Courier New", Courier, monospace`;
       g.textBaseline = "top";
       g.fillStyle = colorCss;
       g.fillText(ch, 2, 2);
@@ -363,32 +368,44 @@ export default function WindGrass({ opacity = 0.6 }) {
       // The reveal front grows with gust progress, so each
       // line traces itself across and completes its curl,
       // then the whole shape fades on the gust envelope.
+      // Body comes from three passes along the path: two side
+      // passes offset along the path normal at reduced light,
+      // then the bright center pass on top. Glyphs render at
+      // RIBBON_SCALE so the chain reads as a stroked line with
+      // soft edges rather than a dotted thread.
       const life = Math.sin(Math.PI * Math.min(1, Math.max(0, t)));
       const reveal = Math.min(1, t * 1.75);
+      const PASSES = [
+        { off: -0.5, f: 0.6 },
+        { off: 0.5, f: 0.6 },
+        { off: 0, f: 1 },
+      ];
       for (const r of gust.ribbons) {
         const ox = gx - r.len * 0.8 + r.headLag;
         const oy = gy + r.yOff;
-        for (const p of r.points) {
-          if (p.frac > reveal) break;
-          const wob = Math.sin(now * 1.7 + p.x * 0.018 + r.phase) * 1.6;
-          const sx = ox + p.x;
-          const sy = oy + p.y + wob;
-          if (sx < -12 || sx > W + 12 || inPanel(sx, sy)) continue;
-          let f = life * (1 - p.frac * 0.3);
-          if (reveal - p.frac < 0.06) f *= 1.25;
-          if (f < 0.06) continue;
-          const col = p.frac > 0.86 ? RIBBON_GOLD : RIBBON_IVORY;
-          stamp(ctx, sprite(p.ch, shade(col, bucket(f, 0.05))), sx, sy, false);
+        for (const pass of PASSES) {
+          for (const p of r.points) {
+            if (p.frac > reveal) break;
+            const wob = Math.sin(now * 1.7 + p.x * 0.018 + r.phase) * 1.6;
+            const sx = ox + p.x + p.nx * pass.off * u - (RIBBON_SCALE - 1) * cellW * 0.5;
+            const sy = oy + p.y + wob + p.ny * pass.off * u - (RIBBON_SCALE - 1) * u * 0.5;
+            if (sx < -14 || sx > W + 14 || inPanel(sx, sy)) continue;
+            let f = life * (1 - p.frac * 0.3) * pass.f;
+            if (pass.off === 0 && reveal - p.frac < 0.06) f *= 1.25;
+            if (f < 0.06) continue;
+            const col = p.frac > 0.86 ? RIBBON_GOLD : RIBBON_IVORY;
+            stamp(ctx, sprite(p.ch, shade(col, bucket(f, 0.05)), RIBBON_SCALE), sx, sy, false);
+          }
         }
         for (const s of r.sparkles) {
           if (s.frac > reveal + 0.02) continue;
           const sx = ox + s.x;
           const sy = oy + s.y + Math.sin(now * 1.7 + s.x * 0.018 + r.phase) * 1.6;
-          if (sx < -12 || sx > W + 12 || inPanel(sx, sy)) continue;
-          const tw = 0.2 + 0.8 * Math.pow(0.5 + 0.5 * Math.sin(now * s.speed + s.phase), 2);
-          const f = life * tw * (1.15 - s.frac * 0.55);
+          if (sx < -14 || sx > W + 14 || inPanel(sx, sy)) continue;
+          const tw = 0.35 + 0.75 * Math.pow(0.5 + 0.5 * Math.sin(now * s.speed + s.phase), 2);
+          const f = life * tw * (1.3 - s.frac * 0.5);
           if (f < 0.06) continue;
-          stamp(ctx, sprite(s.ch, shade(RIBBON_IVORY, bucket(f, 0.05))), sx, sy, false);
+          stamp(ctx, sprite(s.ch, shade(RIBBON_IVORY, bucket(f, 0.05)), s.scale), sx, sy, false);
         }
       }
     };
