@@ -48,7 +48,7 @@ import { bucket } from "../lib/glyphAtlas.js";
 const CELL_ASPECT = 0.6;
 const RIBBON_IVORY = "#f2ede1";
 const RIBBON_GOLD = "#e8c95d";
-const RIBBON_SCALE = 1.35;
+const RIBBON_SCALE = 3.0;
 const SPARKLE_CHARS = ["+", "*", "·", "'", "."];
 
 // Glyph for a stretch of line travelling at angle ang (screen
@@ -68,7 +68,7 @@ const buildRibbon = (len, R, phase, spacing) => {
   const Lm = len * 0.74;
   const amp = 4 + Math.random() * 4;
   const arc = -(5 + Math.random() * 11);
-  const turns = 1.25 + Math.random() * 0.25;
+  const turns = 1.15 + Math.random() * 0.2;
   const mainPt = (s) => [
     s * Lm,
     Math.sin(s * 4.4 + phase) * amp + Math.sin(s * Math.PI) * arc,
@@ -79,13 +79,22 @@ const buildRibbon = (len, R, phase, spacing) => {
   const a0 = -Math.PI / 2;
   const curlPt = (k) => {
     const ang = a0 + k * turns * 2 * Math.PI;
-    const r = R * (1 - k) + 5.5 * k;
+    const r = R * (1 - k) + 12 * k;
     return [cx + r * Math.cos(ang), cy + r * Math.sin(ang)];
   };
+  // raw points carry a curl parameter: 0 along the main run,
+  // rising to 1 at the spiral tip, so the draw can taper the
+  // glyph scale into the curl and keep the spiral open
   const raw = [];
   const STEPS = 420;
-  for (let i = 0; i <= STEPS; i++) raw.push(mainPt((i / STEPS) * 0.999));
-  for (let i = 1; i <= STEPS; i++) raw.push(curlPt(i / STEPS));
+  for (let i = 0; i <= STEPS; i++) {
+    const p = mainPt((i / STEPS) * 0.999);
+    raw.push([p[0], p[1], 0]);
+  }
+  for (let i = 1; i <= STEPS; i++) {
+    const p = curlPt(i / STEPS);
+    raw.push([p[0], p[1], i / STEPS]);
+  }
   const sampled = [raw[0]];
   let prev = raw[0];
   let acc = 0;
@@ -108,20 +117,21 @@ const buildRibbon = (len, R, phase, spacing) => {
     if (frac > 0.94 && i % 2 === 0) ch = "o";
     // path normal, used at draw time to lay the side passes
     // that give the line its body
-    return { x: p[0], y: p[1], ch, frac, nx: -Math.sin(ang), ny: Math.cos(ang) };
+    return { x: p[0], y: p[1], ch, frac, curlK: p[2], nx: -Math.sin(ang), ny: Math.cos(ang) };
   });
   const sparkles = [];
-  for (let j = 0; j < 26; j++) {
-    const frac = 0.4 + Math.random() * 0.6;
+  const SPARK_SCALES = [1.6, 1.6, 2.2, 2.2, 3.0];
+  for (let j = 0; j < 60; j++) {
+    const frac = 0.35 + Math.random() * 0.65;
     const base = points[Math.min(n - 1, Math.round(frac * (n - 1)))];
     sparkles.push({
-      x: base.x + (Math.random() - 0.5) * 52,
-      y: base.y + (Math.random() - 0.5) * 150,
+      x: base.x + (Math.random() - 0.5) * 80,
+      y: base.y + (Math.random() - 0.5) * 220,
       frac,
       ch: SPARKLE_CHARS[(Math.random() * SPARKLE_CHARS.length) | 0],
       phase: Math.random() * 6.28,
       speed: 2 + Math.random() * 2.5,
-      scale: Math.random() < 0.35 ? 1.35 : 1,
+      scale: SPARK_SCALES[(Math.random() * SPARK_SCALES.length) | 0],
     });
   }
   return { points, sparkles, len, phase };
@@ -263,10 +273,10 @@ export default function WindGrass({ opacity = 0.6 }) {
         sigmaY: H * 0.12,
         ribbons: Array.from({ length: 4 }, (_, i) => {
           const r = buildRibbon(
-            W * (0.3 + Math.random() * 0.13),
-            20 + Math.random() * 11,
+            W * (0.36 + Math.random() * 0.15),
+            34 + Math.random() * 13,
             Math.random() * 6.28,
-            CELL_ASPECT * u * 1.1,
+            CELL_ASPECT * u * 2.6,
           );
           r.yOff = (i - 1.5) * H * 0.052 + (Math.random() - 0.5) * H * 0.03;
           r.headLag = Math.random() * 70 - 20;
@@ -376,8 +386,8 @@ export default function WindGrass({ opacity = 0.6 }) {
       const life = Math.sin(Math.PI * Math.min(1, Math.max(0, t)));
       const reveal = Math.min(1, t * 1.75);
       const PASSES = [
-        { off: -0.5, f: 0.6 },
-        { off: 0.5, f: 0.6 },
+        { off: -1, f: 0.7 },
+        { off: 1, f: 0.7 },
         { off: 0, f: 1 },
       ];
       for (const r of gust.ribbons) {
@@ -386,24 +396,27 @@ export default function WindGrass({ opacity = 0.6 }) {
         for (const pass of PASSES) {
           for (const p of r.points) {
             if (p.frac > reveal) break;
+            // glyph scale tapers into the curl so the spiral
+            // stays an open ring instead of filling into a knot
+            const ds = Math.round(RIBBON_SCALE * (1 - 0.4 * p.curlK) * 4) / 4;
             const wob = Math.sin(now * 1.7 + p.x * 0.018 + r.phase) * 1.6;
-            const sx = ox + p.x + p.nx * pass.off * u - (RIBBON_SCALE - 1) * cellW * 0.5;
-            const sy = oy + p.y + wob + p.ny * pass.off * u - (RIBBON_SCALE - 1) * u * 0.5;
-            if (sx < -14 || sx > W + 14 || inPanel(sx, sy)) continue;
+            const sx = ox + p.x + p.nx * pass.off * u * ds * 0.42 - (ds - 1) * cellW * 0.5;
+            const sy = oy + p.y + wob + p.ny * pass.off * u * ds * 0.42 - (ds - 1) * u * 0.5;
+            if (sx < -30 || sx > W + 30 || inPanel(sx, sy)) continue;
             let f = life * (1 - p.frac * 0.3) * pass.f;
             if (pass.off === 0 && reveal - p.frac < 0.06) f *= 1.25;
             if (f < 0.06) continue;
             const col = p.frac > 0.86 ? RIBBON_GOLD : RIBBON_IVORY;
-            stamp(ctx, sprite(p.ch, shade(col, bucket(f, 0.05)), RIBBON_SCALE), sx, sy, false);
+            stamp(ctx, sprite(p.ch, shade(col, bucket(f, 0.05)), ds), sx, sy, false);
           }
         }
         for (const s of r.sparkles) {
           if (s.frac > reveal + 0.02) continue;
           const sx = ox + s.x;
           const sy = oy + s.y + Math.sin(now * 1.7 + s.x * 0.018 + r.phase) * 1.6;
-          if (sx < -14 || sx > W + 14 || inPanel(sx, sy)) continue;
-          const tw = 0.35 + 0.75 * Math.pow(0.5 + 0.5 * Math.sin(now * s.speed + s.phase), 2);
-          const f = life * tw * (1.3 - s.frac * 0.5);
+          if (sx < -30 || sx > W + 30 || inPanel(sx, sy)) continue;
+          const tw = 0.45 + 0.75 * Math.pow(0.5 + 0.5 * Math.sin(now * s.speed + s.phase), 2);
+          const f = life * tw * (1.5 - s.frac * 0.5);
           if (f < 0.06) continue;
           stamp(ctx, sprite(s.ch, shade(RIBBON_IVORY, bucket(f, 0.05)), s.scale), sx, sy, false);
         }
