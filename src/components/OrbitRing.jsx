@@ -8,7 +8,14 @@ import {
   IVORY,
   renderFrame,
 } from "../lib/cupGeometry.js";
-import { discPoint, shade } from "../lib/discParticles.js";
+import sunGrid from "../assets/sun-grid.json";
+import {
+  buildParticles,
+  discPoint,
+  shade,
+  DISC_RIN,
+  DISC_ROUT,
+} from "../lib/discParticles.js";
 import { glyphSprite, drawSprite, bucket } from "../lib/glyphAtlas.js";
 
 /*
@@ -25,10 +32,11 @@ import { glyphSprite, drawSprite, bucket } from "../lib/glyphAtlas.js";
     one pose from its own geometry renderer).
   - Depth is told by scale, brightness, and draw order only.
     There is no front state and nothing keys off one.
-  - Every icon carries the same species of particle halo
-    the cup's disc made familiar: seeded glyphs on Kepler
-    orbits in the icon's splash color, squashed by the same
-    tilt, traveling with the icon and dimming with its
+  - Every icon carries the same halo: the hero disc's own
+    seeded field of sun glyphs in sun golds, on the disc's
+    Kepler orbits with its tilt, its Doppler brightening,
+    and its edge fades, wrapped around the icon's bounding
+    sphere, traveling with the icon and dimming with its
     depth. Back-arc particles hide behind the icon's own
     hit grid, the disc's occlusion rule.
   - Icons are not links. Labels ride under each icon
@@ -42,20 +50,13 @@ import { glyphSprite, drawSprite, bucket } from "../lib/glyphAtlas.js";
 */
 const ORBIT_PERIOD_S = 15;
 const BAKE_U = 9;
-const HALO_COUNT = 62;
-const HALO_CHARS = "·:;+*x%#";
 const CUP_PHASE = 0.9;
-
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+// The halo is the hero disc itself (Nick, Oct 26, 2026):
+// the same seeded field of sun glyphs in sun golds that
+// orbited the lone cup, built once from the sun grid and
+// shared by every icon in the ring, split into interleaved
+// shares so the icons carry halves of one and the same disc.
+const DISC_FIELD = buildParticles(sunGrid);
 
 function bakeCup() {
   const frame = renderFrame(CUP_PHASE);
@@ -127,19 +128,6 @@ function bakeGrid(grid) {
   return { cv, cols: grid.cols, rows: grid.rows, hits };
 }
 
-function buildHalo(entry) {
-  const rng = mulberry32(entry.seed);
-  const out = [];
-  for (let i = 0; i < HALO_COUNT; i++) {
-    out.push({
-      rr: 0.78 + (1.34 - 0.78) * Math.pow(rng(), 1.6),
-      a0: rng() * Math.PI * 2,
-      ch: HALO_CHARS[(rng() * HALO_CHARS.length) | 0],
-    });
-  }
-  return out;
-}
-
 export default function OrbitRing() {
   const ref = useRef(null);
 
@@ -151,23 +139,24 @@ export default function OrbitRing() {
     let raf = 0;
     let visible = true;
 
-    const icons = ICON_REGISTRY.map((entry) => {
+    const icons = ICON_REGISTRY.map((entry, idx) => {
       const baked = entry.kind === "cup" ? bakeCup() : bakeGrid(entry.grid);
       return {
         entry,
         ...baked,
         aspect: baked.cv.width / baked.cv.height,
-        halo: buildHalo(entry),
+        halo: DISC_FIELD.filter((_, k) => k % ICON_REGISTRY.length === idx),
       };
     });
 
-    const drawIcon = (icon, cx, cy, dispW, dispH, depth, t, dpr) => {
+    const drawIcon = (icon, cx, cy, dispW, dispH, depth, t, dpr, fitScale) => {
       const { entry, hits, cols, rows } = icon;
-      // halo radii wrap the sprite's larger half-dimension
-      const sphereR = Math.max(dispW, dispH) * 0.56;
+      // the disc wraps the icon's bounding sphere at the
+      // same proportion it wrapped the cup
+      const sphereR = 0.61 * 0.5 * Math.hypot(dispW, dispH);
       const cellW = dispW / cols;
       const cellH = dispH / rows;
-      const bright = 0.5 + 0.62 * depth;
+      const bright = 0.45 + 0.65 * depth; // the ring's depth dimming
       const drawHaloHalf = (back) => {
         for (const p of icon.halo) {
           const pt = discPoint(p, t, cx, cy, sphereR);
@@ -192,11 +181,21 @@ export default function OrbitRing() {
             if (back && inside) continue;
             if (near) dim = 0.45;
           }
-          const fadeR = Math.min(1, (1.34 - p.rr) / 0.17, (p.rr - 0.78) / 0.11 + 0.25);
+          const fadeR = Math.min(
+            1,
+            (DISC_ROUT - p.rr) / 0.17,
+            (p.rr - DISC_RIN) / 0.11 + 0.25,
+          );
           const dopp = 0.78 + 0.4 * Math.cos(pt.a);
-          const b = bucket(Math.max(0.2, Math.min(1.7, fadeR * dopp * bright * dim)), 0.1);
-          const u = Math.max(4, Math.min(11, dispH * 0.045)) * (0.8 + 0.3 * depth);
-          const sp = glyphSprite(p.ch, shade(entry.halo, b), Math.round(u * 2) / 2, p.rr < 1.04);
+          const b = bucket(
+            Math.max(0.25, Math.min(1.75, fadeR * dopp * 1.25 * bright * dim)),
+            0.1,
+          );
+          // the disc's glyphs were sized off the sun field's
+          // own cells, big and chunky next to the cup; the
+          // ring sizes them off the stage scale instead
+          const u = Math.max(3.5, 11.5 * fitScale * (0.75 + 0.35 * depth));
+          const sp = glyphSprite(p.ch, shade(p.col, b), Math.round(u * 2) / 2, p.rr < 1.04);
           const tx = -Math.sin(pt.a);
           const ty = Math.cos(pt.a) * 0.8;
           const ang = Math.atan2(ty, tx);
@@ -247,20 +246,20 @@ export default function OrbitRing() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
       const cx = W / 2;
-      const cy = H / 2 - 14;
+      const cy = H / 2 - 22;
       // the orbit also has to leave room for the front icon
       // and its halo, so small screens pull the ellipse in
       // rather than letting an icon slide off the edge
       const fit = Math.min(1, W / 900, H / 500);
       const RX = Math.max(60, Math.min(W * 0.335, 400, W / 2 - 160 * fit - 6));
-      const RY = RX * 0.30;
+      const RY = RX * 0.27;
       const placed = icons.map((icon, i) => {
         const th = (i * Math.PI * 2) / icons.length - (t * Math.PI * 2) / ORBIT_PERIOD_S;
         const depth = (Math.sin(th) + 1) / 2;
         const scaleF = (0.58 + 0.52 * depth) * fit;
         // fit the icon into a stage-relative box, aspect kept
         const boxW = 290 * scaleF;
-        const boxH = 290 * scaleF;
+        const boxH = 262 * scaleF;
         let dispW = boxW;
         let dispH = dispW / icon.aspect;
         if (dispH > boxH) {
@@ -269,6 +268,7 @@ export default function OrbitRing() {
         }
         return {
           icon,
+          fit,
           depth,
           x: cx + RX * Math.cos(th),
           y: cy + RY * Math.sin(th),
@@ -278,7 +278,7 @@ export default function OrbitRing() {
       });
       placed.sort((a, b) => a.depth - b.depth);
       for (const p of placed) {
-        drawIcon(p.icon, p.x, p.y, p.dispW, p.dispH, p.depth, t, dpr);
+        drawIcon(p.icon, p.x, p.y, p.dispW, p.dispH, p.depth, t, dpr, p.fit);
       }
     };
 

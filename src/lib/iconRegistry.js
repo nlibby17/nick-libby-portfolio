@@ -21,15 +21,11 @@ export const ICON_REGISTRY = [
     id: "dunkin",
     label: "Dunkin' Route",
     kind: "cup",
-    halo: "#e0651f",
-    seed: 133233,
   },
   {
     id: "stock",
     label: "Stock App",
     kind: "grid",
     grid: swordsGrid,
-    halo: "#2f9e4f",
-    seed: 7211,
   },
 ];
