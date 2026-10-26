@@ -8,15 +8,8 @@ import {
   IVORY,
   renderFrame,
 } from "../lib/cupGeometry.js";
-import sunGrid from "../assets/sun-grid.json";
-import {
-  buildParticles,
-  discPoint,
-  shade,
-  DISC_RIN,
-  DISC_ROUT,
-} from "../lib/discParticles.js";
-import { glyphSprite, drawSprite, bucket } from "../lib/glyphAtlas.js";
+import { shade } from "../lib/discParticles.js";
+import { glyphSprite } from "../lib/glyphAtlas.js";
 
 /*
   OrbitRing: the homepage hero carousel (Nick's design,
@@ -32,31 +25,45 @@ import { glyphSprite, drawSprite, bucket } from "../lib/glyphAtlas.js";
     one pose from its own geometry renderer).
   - Depth is told by scale, brightness, and draw order only.
     There is no front state and nothing keys off one.
-  - Every icon carries the same halo: the hero disc's own
-    seeded field of sun glyphs in sun golds, on the disc's
-    Kepler orbits with its tilt, its Doppler brightening,
-    and its edge fades, wrapped around the icon's bounding
-    sphere, traveling with the icon and dimming with its
-    depth. Back-arc particles hide behind the icon's own
-    hit grid, the disc's occlusion rule.
+  - Every icon carries a particle halo (Nick's design, final
+    form Oct 26, 2026): a dense seeded field of small glyphs
+    on plain elliptical orbits around the icon, colored as a
+    pale kin of the icon's own colors, pointedly not the
+    project's splash color. The math stays deliberately
+    simple: constant speeds, no Kepler terms, no Doppler,
+    sprites pre-rendered once and stamped without rotation.
+    The heavyweight disc port (the sun field itself, with
+    its per-particle transforms) looked right and lagged
+    the page, so it was retired to the older commits by
+    Nick's call; this halo matches its density, not its
+    machinery. Back-arc particles hide behind the icon's
+    own hit grid so the halo reads as passing behind.
   - Icons are not links. Labels ride under each icon
     (first build; the A/B against no labels comes later).
   - The middle of the orbit stays empty.
   - Reduced motion: one still arrangement, halos frozen.
 
-  Everything renders on one canvas. Icon sprites are baked
-  once per mount at BAKE_U and scaled per frame, so a frame
-  costs one drawImage per icon plus its halo stamps.
+  Icon sprites are baked once per mount at BAKE_U and
+  scaled per frame, so a frame costs one drawImage per
+  icon plus its halo stamps.
 */
-const ORBIT_PERIOD_S = 15;
+const ORBIT_PERIOD_S = 25;
 const BAKE_U = 9;
 const CUP_PHASE = 0.9;
-// The halo is the hero disc itself (Nick, Oct 26, 2026):
-// the same seeded field of sun glyphs in sun golds that
-// orbited the lone cup, built once from the sun grid and
-// shared by every icon in the ring, split into interleaved
-// shares so the icons carry halves of one and the same disc.
-const DISC_FIELD = buildParticles(sunGrid);
+const HALO_COUNT = 340;
+const HALO_CHARS = "·:;+*x%#";
+const HALO_SQUASH = 0.8;
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 function bakeCup() {
   const frame = renderFrame(CUP_PHASE);
@@ -128,6 +135,21 @@ function bakeGrid(grid) {
   return { cv, cols: grid.cols, rows: grid.rows, hits };
 }
 
+function buildHalo(entry) {
+  const rng = mulberry32(entry.seed);
+  const out = [];
+  for (let i = 0; i < HALO_COUNT; i++) {
+    out.push({
+      rr: 0.8 + 0.5 * Math.pow(rng(), 1.35),
+      a0: rng() * Math.PI * 2,
+      speed: 0.3 + 0.35 * rng(),
+      ch: HALO_CHARS[(rng() * HALO_CHARS.length) | 0],
+      big: rng() < 0.4,
+    });
+  }
+  return out;
+}
+
 export default function OrbitRing() {
   const ref = useRef(null);
 
@@ -139,32 +161,34 @@ export default function OrbitRing() {
     let raf = 0;
     let visible = true;
 
-    const icons = ICON_REGISTRY.map((entry, idx) => {
+    const icons = ICON_REGISTRY.map((entry) => {
       const baked = entry.kind === "cup" ? bakeCup() : bakeGrid(entry.grid);
       return {
         entry,
         ...baked,
         aspect: baked.cv.width / baked.cv.height,
-        halo: DISC_FIELD.filter((_, k) => k % ICON_REGISTRY.length === idx),
+        halo: buildHalo(entry),
       };
     });
 
     const drawIcon = (icon, cx, cy, dispW, dispH, depth, t, dpr, fitScale) => {
       const { entry, hits, cols, rows } = icon;
-      // the disc wraps the icon's bounding sphere at the
-      // same proportion it wrapped the cup
-      const sphereR = 0.61 * 0.5 * Math.hypot(dispW, dispH);
+      const sphereR = 0.78 * 0.5 * Math.hypot(dispW, dispH);
       const cellW = dispW / cols;
       const cellH = dispH / rows;
-      const bright = 0.45 + 0.65 * depth; // the ring's depth dimming
+      const x0 = cx - dispW / 2;
+      const y0 = cy - dispH / 2;
       const drawHaloHalf = (back) => {
+        ctx.globalAlpha = (0.4 + 0.6 * depth) * (back ? 0.85 : 1);
         for (const p of icon.halo) {
-          const pt = discPoint(p, t, cx, cy, sphereR);
-          if (pt.behind !== back) continue;
+          const a = p.a0 + p.speed * t;
+          const sa = Math.sin(a);
+          if ((sa < 0) !== back) continue;
+          const x = cx + Math.cos(a) * p.rr * sphereR;
+          const y = cy + sa * p.rr * sphereR * HALO_SQUASH;
           // occlusion against the icon's own hit grid
-          const gx = Math.floor((pt.x - (cx - dispW / 2)) / cellW);
-          const gy = Math.floor((pt.y - (cy - dispH / 2)) / cellH);
-          let dim = 1;
+          const gx = Math.floor((x - x0) / cellW);
+          const gy = Math.floor((y - y0) / cellH);
           if (gx >= -1 && gx <= cols && gy >= -1 && gy <= rows) {
             let near = false;
             let inside = false;
@@ -179,43 +203,27 @@ export default function OrbitRing() {
               }
             }
             if (back && inside) continue;
-            if (near) dim = 0.45;
+            if (near && back) continue;
           }
-          const fadeR = Math.min(
-            1,
-            (DISC_ROUT - p.rr) / 0.17,
-            (p.rr - DISC_RIN) / 0.11 + 0.25,
+          const ca = Math.cos(a);
+          const shadeF = ca > 0.3 ? 1.05 : ca < -0.3 ? 0.5 : 0.78;
+          const u = (p.big ? 9.5 : 6.5) * Math.max(0.45, fitScale);
+          const sp = glyphSprite(p.ch, shade(entry.haloTint, shadeF), u, p.big);
+          ctx.drawImage(
+            sp,
+            x - sp.width / (2 * sp._ss),
+            y - sp.height / (2 * sp._ss),
+            sp.width / sp._ss,
+            sp.height / sp._ss,
           );
-          const dopp = 0.78 + 0.4 * Math.cos(pt.a);
-          const b = bucket(
-            Math.max(0.25, Math.min(1.75, fadeR * dopp * 1.25 * bright * dim)),
-            0.1,
-          );
-          // the disc's glyphs were sized off the sun field's
-          // own cells, big and chunky next to the cup; the
-          // ring sizes them off the stage scale instead
-          const u = Math.max(3.5, 11.5 * fitScale * (0.75 + 0.35 * depth));
-          const sp = glyphSprite(p.ch, shade(p.col, b), Math.round(u * 2) / 2, p.rr < 1.04);
-          const tx = -Math.sin(pt.a);
-          const ty = Math.cos(pt.a) * 0.8;
-          const ang = Math.atan2(ty, tx);
-          const stretch = Math.min(1.8, 1 + 0.55 * pt.om);
-          drawSprite(ctx, sp, pt.x, pt.y, ang, stretch, dpr);
         }
+        ctx.globalAlpha = 1;
       };
       drawHaloHalf(true);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.globalAlpha = 0.55 + 0.45 * depth;
-      try {
-        ctx.filter = `brightness(${(0.6 + 0.55 * depth).toFixed(3)})`;
-      } catch { /* older engines draw unfiltered */ }
-      ctx.drawImage(icon.cv, cx - dispW / 2, cy - dispH / 2, dispW, dispH);
-      try {
-        ctx.filter = "none";
-      } catch { /* steady */ }
+      ctx.drawImage(icon.cv, x0, y0, dispW, dispH);
       ctx.globalAlpha = 1;
       drawHaloHalf(false);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       // label
       ctx.font = `600 ${Math.max(11, dispH * 0.052)}px "IBM Plex Mono", monospace`;
       ctx.textAlign = "center";
@@ -247,10 +255,10 @@ export default function OrbitRing() {
       ctx.clearRect(0, 0, W, H);
       const cx = W / 2;
       const cy = H / 2 - 22;
+      const fit = Math.min(1, W / 900, H / 500);
       // the orbit also has to leave room for the front icon
       // and its halo, so small screens pull the ellipse in
       // rather than letting an icon slide off the edge
-      const fit = Math.min(1, W / 900, H / 500);
       const RX = Math.max(60, Math.min(W * 0.335, 400, W / 2 - 160 * fit - 6));
       const RY = RX * 0.27;
       const placed = icons.map((icon, i) => {
