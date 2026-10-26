@@ -4,38 +4,35 @@ import { shade } from "../lib/discParticles.js";
 import { bucket } from "../lib/glyphAtlas.js";
 
 /*
-  CandleField, second architecture (Nick approved the plan
-  Oct 25, 2026 after two patch-based versions kept carving
-  dark boxes into bright regions). Two stacked canvases:
+  CandleField, third architecture (v3.44). Two stacked
+  canvases, as approved: the base canvas holds the anchored
+  sky and breathes through a CSS filter on the element; the
+  FX canvas above only ever draws glyph-shaped marks, so
+  rectangular artifacts have no mechanism to exist.
 
-  - Base canvas: the far sky, stamped once per resize. It
-    breathes through a CSS filter on the element itself, so
-    the swell is composited by the browser and never redraws
-    a pixel. A whisper of transform sway gives it drift.
-  - FX canvas: transparent, cleared every frame, and it only
-    ever draws glyph-shaped marks. Brightening is a brighter
-    glyph stamped over the base. Dimming or hiding is the
-    same glyph drawn in black at partial alpha, so the mask
-    is always the star's own shape. Nothing paints or
-    restores a rectangle anywhere, so rectangular artifacts
-    have no mechanism to exist.
+  The v3.43 parallax tore the art apart, and Nick called the
+  fix: objects must never be parallaxed. The first build
+  split the field by per-cell brightness, so every bright
+  candle's core drifted out of its own dimmer edges. The
+  rule now is object-first:
 
-  Populations, all seeded so the sky is stable per visit:
-  - Near layer: the brightest slice of cells. It truly
-    drifts across the far sky and wraps, which is where the
-    parallax depth comes from. Near cells are never stamped
-    into the base.
-  - Giants: the largest connected candle bodies found in the
-    grid. They flicker like flames, a fast two-sine jitter
-    applied to their near-layer stamps.
-  - Nebula set: the dim blue-dominant cells. Light waves
-    spawn every so often and sweep diagonally; nebula cells
-    inside the band flare as it passes.
-  - Reactive set: about a tenth of all cells ride springs
-    around the pointer, pushed out and lit, overshooting
-    home when the pointer leaves. On the FX layer a displaced
-    star is a glyph-shaped fade at its post plus its glyph
-    stamped at the displaced position.
+  - The grid is segmented before anything moves. Candle
+    class cells (saturated green or red, or near white) form
+    their own connected components: those are the candles.
+  - Any full-grid component containing even one candle
+    class cell is an OBJECT. Objects are anchored in the
+    base, whole, forever.
+  - Parallax belongs only to SPECKS: full-grid components
+    of four cells or fewer with no candle class and no
+    nebula in them, distant star dust that cannot be torn
+    because it has no structure to tear. About 1,100 cells.
+  - Flicker rides the largest green and red candle
+    components, stamped at their anchored posts.
+  - Nebula light waves sweep the dim blue cells, which live
+    in the anchored continent and are lit in place.
+  - Springs still push cells around the pointer; anchored
+    cells fade at their post in their own glyph shape and
+    land displaced, specks add the offset to their drift.
 
   Reduced motion: base sky only, still and unfiltered.
 */
@@ -44,8 +41,7 @@ const SEED = 133233;
 const POINTER_RADIUS = 230;
 const SPRING_K = 110;
 const SPRING_C = 8.5;
-const NEAR_CAP = 2400;
-const DRIFT_VX = -3.4; // px per second, near layer
+const DRIFT_VX = -3.4; // px per second, specks only
 const DRIFT_VY = 0.55;
 
 function mulberry32(seed) {
@@ -59,12 +55,17 @@ function mulberry32(seed) {
   };
 }
 
-const lumOf = (hex) => {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return { r, g, b, lum: (0.299 * r + 0.587 * g + 0.114 * b) / 255 };
-};
+const rgbOf = (hex) => ({
+  r: parseInt(hex.slice(1, 3), 16),
+  g: parseInt(hex.slice(3, 5), 16),
+  b: parseInt(hex.slice(5, 7), 16),
+});
+const lumOf = ({ r, g, b }) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+const isCandleRGB = ({ r, g, b }) =>
+  (g > r + 25 && g > b + 25 && g >= 85) ||
+  (r > g + 25 && r > b + 25 && r >= 85) ||
+  Math.min(r, g, b) >= 165;
+const isNebulaRGB = (rgb) => rgb.b > rgb.r && rgb.b > rgb.g && lumOf(rgb) < 0.34;
 
 export default function CandleField({ opacity = 0.6 }) {
   const baseRef = useRef(null);
@@ -82,7 +83,8 @@ export default function CandleField({ opacity = 0.6 }) {
     let H = 0;
     let u = 0;
     let visible = true;
-    let nearCells = [];
+    let specks = []; // [{ cells, mult }]
+    let flickerCells = [];
     let nebulaCells = [];
     let farReactive = [];
     let giants = [];
@@ -138,6 +140,7 @@ export default function CandleField({ opacity = 0.6 }) {
       const oy = (H - grid.rows * u) / 2;
       spriteCache.clear();
 
+      const paletteRGB = grid.palette.map(rgbOf);
       const all = [];
       const byCoord = new Map();
       for (let gy = 0; gy < grid.rows; gy++) {
@@ -147,82 +150,111 @@ export default function CandleField({ opacity = 0.6 }) {
           const px = ox + gx * cellW;
           const py = oy + gy * u;
           if (px < -cellW || px > W || py < -u || py > H) continue;
-          const col = grid.palette[ci];
+          const rgb = paletteRGB[ci];
           const cell = {
             x: px, y: py, gx, gy,
-            ch: grid.lines[gy][gx], col,
-            ...lumOf(col),
-            giant: -1, spring: null,
+            ch: grid.lines[gy][gx], col: grid.palette[ci],
+            candle: isCandleRGB(rgb),
+            nebula: isNebulaRGB(rgb),
+            speck: -1, flicker: -1, spring: null, lastB: 1,
           };
           all.push(cell);
           byCoord.set(`${gx},${gy}`, cell);
         }
       }
 
-      // giants: largest connected bodies in the grid
-      const seen = new Set();
-      const comps = [];
-      for (const cell of all) {
-        const key = `${cell.gx},${cell.gy}`;
-        if (seen.has(key)) continue;
-        const comp = [];
-        const stack = [cell];
-        seen.add(key);
-        while (stack.length) {
-          const c = stack.pop();
-          comp.push(c);
-          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-            const nk = `${c.gx + dx},${c.gy + dy}`;
-            if (seen.has(nk)) continue;
-            const n = byCoord.get(nk);
-            if (n) {
-              seen.add(nk);
-              stack.push(n);
+      // full-grid components: the object map of the sky
+      const componentsOf = (cells, keyFn) => {
+        const inSet = new Set(cells);
+        const seenSet = new Set();
+        const comps = [];
+        for (const cell of cells) {
+          if (seenSet.has(cell)) continue;
+          const comp = [];
+          const stack = [cell];
+          seenSet.add(cell);
+          while (stack.length) {
+            const c = stack.pop();
+            comp.push(c);
+            for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+              const n = keyFn(c.gx + dx, c.gy + dy);
+              if (n && inSet.has(n) && !seenSet.has(n)) {
+                seenSet.add(n);
+                stack.push(n);
+              }
             }
           }
+          comps.push(comp);
         }
-        if (comp.length >= 25) comps.push(comp);
+        return comps;
+      };
+      const fullComps = componentsOf(all, (x, y) => byCoord.get(`${x},${y}`));
+
+      // specks: tiny, candle-free, nebula-free components
+      const rand = mulberry32(SEED);
+      specks = [];
+      const speckSet = new Set();
+      for (const comp of fullComps) {
+        if (comp.length > 4) continue;
+        if (comp.some((c) => c.candle || c.nebula)) continue;
+        const idx = specks.length;
+        specks.push({ cells: comp, mult: 0.7 + rand() * 0.6 });
+        for (const c of comp) {
+          c.speck = idx;
+          speckSet.add(c);
+        }
       }
-      comps.sort((a, b) => b.length - a.length);
+
+      // flicker: largest green or red candle-class components
+      const candleCells = all.filter((c) => c.candle);
+      const candleComps = componentsOf(candleCells, (x, y) => byCoord.get(`${x},${y}`))
+        .filter((comp) => comp.length >= 20)
+        .map((comp) => {
+          let r = 0, g = 0, b = 0;
+          for (const c of comp) {
+            const rgb = paletteRGB[grid.cells[c.gy][c.gx]];
+            r += rgb.r; g += rgb.g; b += rgb.b;
+          }
+          return { comp, hue: g > r && g > b ? "green" : r > g && r > b ? "red" : "white" };
+        })
+        .filter(({ hue }) => hue === "green" || hue === "red")
+        .sort((a, b) => b.comp.length - a.comp.length)
+        .slice(0, 16);
       const rand0 = mulberry32(SEED + 7);
-      giants = comps.slice(0, 16).map(() => ({
+      giants = candleComps.map(() => ({
         phase: rand0() * 6.28,
         speed: 0.9 + rand0() * 0.5,
       }));
-      comps.slice(0, 16).forEach((comp, gi) => {
-        for (const c of comp) c.giant = gi;
+      flickerCells = [];
+      candleComps.forEach(({ comp }, gi) => {
+        for (const c of comp) {
+          c.flicker = gi;
+          flickerCells.push(c);
+        }
       });
 
-      // near layer: the brightest slice, capped
-      const sorted = [...all].sort((a, b) => b.lum - a.lum);
-      const nearSet = new Set(sorted.slice(0, NEAR_CAP));
-      nearCells = [...nearSet];
-      nebulaCells = all.filter(
-        (c) => !nearSet.has(c) && c.b > c.r && c.b > c.g && c.lum < 0.34,
-      );
-      const nebulaSet = new Set(nebulaCells);
+      nebulaCells = all.filter((c) => c.nebula && !speckSet.has(c));
       const diag = Math.hypot(W, H) || 1;
       for (const c of nebulaCells) {
         c.axis = (c.x * 0.8 + c.y * 0.6) / diag;
       }
 
-      // far sky onto the base canvas: everything not near
+      // anchored sky onto the base: everything but specks
       bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       bctx.fillStyle = "#0a0a09";
       bctx.fillRect(0, 0, W, H);
       for (const cell of all) {
-        if (nearSet.has(cell)) continue;
+        if (speckSet.has(cell)) continue;
         stamp(bctx, sprite(cell.ch, cell.col), cell.x, cell.y);
       }
 
-      // springs: a seeded tenth of all cells, disjoint handling
-      // per layer at draw time
-      const rand = mulberry32(SEED);
+      // springs on a seeded tenth; each cell is animated by
+      // exactly one pass, in priority order
       farReactive = [];
       for (const cell of all) {
         if (rand() < 0.1) {
           cell.spring = { ox: 0, oy: 0, vx: 0, vy: 0 };
-          if (!nearSet.has(cell) && !nebulaSet.has(cell)) {
+          if (cell.speck < 0 && cell.flicker < 0 && !cell.nebula) {
             farReactive.push(cell);
           }
         }
@@ -289,7 +321,7 @@ export default function CandleField({ opacity = 0.6 }) {
         ctx.fillRect(pointer.x - rad, pointer.y - rad, rad * 2, rad * 2);
       }
 
-      // nebula light waves
+      // nebula light waves, lit in place
       if (now >= nextWaveAt) {
         waves.push({ t0: now, dur: 4.5 });
         nextWaveAt = now + 8 + Math.random() * 7;
@@ -308,46 +340,71 @@ export default function CandleField({ opacity = 0.6 }) {
         }
       }
 
-      // near layer: drift, flicker, springs
-      const dxT = now * DRIFT_VX;
-      const dyT = now * DRIFT_VY;
-      const spanX = W + cellW * 2;
-      const spanY = H + u * 2;
-      for (const cell of nearCells) {
-        let px = (cell.x + dxT) % spanX;
-        if (px < 0) px += spanX;
-        px -= cellW;
-        let py = (cell.y + dyT) % spanY;
-        if (py < 0) py += spanY;
-        py -= u;
-        let f = 1;
-        if (cell.giant >= 0) {
-          const g = giants[cell.giant];
-          const t = now * g.speed;
-          f =
-            1 +
-            0.17 *
-              (0.6 * Math.sin(t * 8.3 + g.phase) +
-                0.4 * Math.sin(t * 19.7 + g.phase * 1.7));
-        }
-        let ox = 0;
-        let oy = 0;
-        let flare = 1;
+      // candle flicker at anchored posts
+      for (const cell of flickerCells) {
+        const g = giants[cell.flicker];
+        const t = now * g.speed;
+        let f =
+          1 +
+          0.17 *
+            (0.6 * Math.sin(t * 8.3 + g.phase) +
+              0.4 * Math.sin(t * 19.7 + g.phase * 1.7));
         if (cell.spring) {
-          // springs measure the pointer against the cell's
-          // current drifted position, not its home post
-          flare = springStep(cell, dt, px + cellW * 0.5, py + u * 0.5);
-          ox = cell.spring.ox;
-          oy = cell.spring.oy;
+          const flare = springStep(cell, dt, cell.x + cellW * 0.5, cell.y + u * 0.5);
+          f *= flare;
+          const s = cell.spring;
+          const moved = Math.abs(s.ox) > 0.4 || Math.abs(s.oy) > 0.4;
+          if (moved) {
+            stampAlpha(sprite(cell.ch, "#000000"), cell.x, cell.y,
+              Math.min(0.9, Math.hypot(s.ox, s.oy) / 14 + 0.25));
+          }
+          const b = bucket(Math.max(0.55, f), 0.05);
+          stamp(ctx, sprite(cell.ch, b === 1 ? cell.col : shade(cell.col, b)),
+            cell.x + s.ox, cell.y + s.oy);
+          cell.lastB = b;
+        } else {
+          const b = bucket(Math.max(0.55, f), 0.05);
+          if (b === cell.lastB) continue;
+          cell.lastB = b;
+          if (b < 1) {
+            stampAlpha(sprite(cell.ch, "#000000"), cell.x, cell.y,
+              Math.min(0.85, (1 - b) * 1.6));
+          }
+          stamp(ctx, sprite(cell.ch, b === 1 ? cell.col : shade(cell.col, b)), cell.x, cell.y);
         }
-        // near cells live only on this layer, so a dimmer
-        // stamp is simply a darker glyph; nothing to hide
-        const total = f * flare;
-        const b = bucket(Math.max(0.55, total), 0.05);
-        stamp(ctx, sprite(cell.ch, b === 1 ? cell.col : shade(cell.col, b)), px + ox, py + oy);
       }
 
-      // far reactive cells: only while their spring is alive
+      // specks: the only things allowed to travel
+      const spanX = W + cellW * 2;
+      const spanY = H + u * 2;
+      for (const speck of specks) {
+        const dxT = now * DRIFT_VX * speck.mult;
+        const dyT = now * DRIFT_VY * speck.mult;
+        for (const cell of speck.cells) {
+          let px = (cell.x + dxT) % spanX;
+          if (px < 0) px += spanX;
+          px -= cellW;
+          let py = (cell.y + dyT) % spanY;
+          if (py < 0) py += spanY;
+          py -= u;
+          if (cell.spring) {
+            const flare = springStep(cell, dt, px + cellW * 0.5, py + u * 0.5);
+            const s = cell.spring;
+            const moved = Math.abs(s.ox) > 0.4 || Math.abs(s.oy) > 0.4;
+            if (moved) {
+              stampAlpha(sprite(cell.ch, "#000000"), px, py,
+                Math.min(0.9, Math.hypot(s.ox, s.oy) / 14 + 0.25));
+            }
+            const b = bucket(flare, 0.06);
+            stamp(ctx, sprite(cell.ch, b === 1 ? cell.col : shade(cell.col, b)),
+              px + s.ox, py + s.oy);
+          } else {
+            stamp(ctx, sprite(cell.ch, cell.col), px, py);
+          }
+        }
+      }
+
+      // remaining anchored cells with springs
       for (const cell of farReactive) {
         const s = cell.spring;
         const flare = springStep(cell, dt, cell.x + cellW * 0.5, cell.y + u * 0.5);
