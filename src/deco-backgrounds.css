@@ -205,3 +205,10 @@
 .deco-divider--wide {
   max-width: none;
 }
+
+/* Plain variant (Nick, Oct 25, 2026): project pages with
+   their own ASCII backdrop field drop the gold diamond
+   texture entirely. */
+.deco-page-bg--plain::before {
+  display: none;
+}

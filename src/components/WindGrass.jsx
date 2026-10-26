@@ -6,136 +6,39 @@ import { bucket } from "../lib/glyphAtlas.js";
 
 /*
   WindGrass: the About page grass field with weather (Nick's
-  plan, approved Oct 25, 2026. The streaks became full wind
-  ribbons the same day, rebuilt from reference images he
-  shared of the classic wind icon).
+  plan, approved Oct 25, 2026, streak count set to 3-4 by him).
+  The ribbon and particle experiments later that day
+  (v3.26 to v3.30) were reverted on his call. This file is
+  the subtle form he kept.
 
-  ONE canvas, one offscreen base rendered with the same
-  sprite stamps the wind uses. Each wind frame blits the
-  base back before painting weather, so a gust repaints
-  inside the same material as the field around it. The
-  stacked-canvas version showed its erase rectangle as a
-  tinted pane and Nick caught it, which is why the single
-  canvas exists.
+  ONE canvas, one offscreen base rendered with the same sprite
+  stamps the wind uses. Each wind frame blits the base back
+  before painting weather, so a gust repaints inside the same
+  material as the field around it (the stacked-canvas version
+  showed its erase rectangle as a tinted pane and Nick caught it).
 
   Weather: gusts are events, every 6-10 seconds, crossing in
   about 3.2 seconds along an arced path. Blades in the gust
-  lean along the path direction, flutter at the peak, and
-  brighten. Four ribbons ride each gust, flowing glyph lines
-  shaped like the classic wind icon. Each ribbon traces
-  itself across, finishes in a spiral curl tipped in gold,
-  and carries sparkles around its head that twinkle and
-  trail off. Between gusts, a sparse shimmer keeps the
-  field from looking dead.
+  lean along the path's direction, flutter at the peak, and
+  brighten. 3-4 faint streak trails ride each gust. Between
+  gusts, a sparse shimmer keeps the field from looking dead.
 
-  Perf discipline (the first wind builds taught this the
-  hard way, first by saturating the main thread so the page
-  stayed black, then by a crash the local harness could not
-  see because its software canvas tolerated a bad call):
+  Perf discipline (the first wind build saturated the main
+  thread on weaker hardware and the page stayed black):
   - At spawn, a gust precomputes its swept band of cells,
     sorted by x. Frames iterate only a sliding window of it.
   - Only cells the gust actually moves get re-stamped, each
-    wiped with a per-cell background fill first. No big
-    erase rectangle, no stamps for blades that stay put.
+    wiped with a per-cell background fill first. No big erase
+    rectangle, no stamps for blades that would not change.
   - Gust frames run at about 12fps, and after an expensive
     frame the next one waits, so the thread always gets
     breathing room. Three very slow frames disable the wind
-    for the session and the shimmer remains, rather than
-    fight the machine. Cells under the About panel get no
-    stamps at all.
+    for the session (shimmer remains) rather than fight the
+    machine. Cells under the About panel get no stamps.
   Reduced motion: static field only.
 */
 const CELL_ASPECT = 0.6;
-const RIBBON_IVORY = "#f2ede1";
-const RIBBON_GOLD = "#e8c95d";
-const RIBBON_SCALE = 3.0;
-const SPARKLE_CHARS = ["+", "*", "·", "'", "."];
-
-// Glyph for a stretch of line travelling at angle ang (screen
-// coords, y down). Direction folds modulo PI because a line
-// reads the same travelling either way along itself.
-const tangentChar = (ang) => {
-  const a = ((ang % Math.PI) + Math.PI) % Math.PI;
-  const sector = Math.round(a / (Math.PI / 4)) % 4;
-  return ["-", "\\", "|", "/"][sector];
-};
-
-// One wind ribbon: a gently waving run of glyphs ending in a
-// spiral curl, sampled by arc length with the glyph at each
-// point chosen from the path direction there. Sparkles are
-// seeded around the head half, ready to twinkle at draw time.
-const buildRibbon = (len, R, phase, spacing) => {
-  const Lm = len * 0.74;
-  const amp = 4 + Math.random() * 4;
-  const arc = -(5 + Math.random() * 11);
-  const turns = 1.15 + Math.random() * 0.2;
-  const mainPt = (s) => [
-    s * Lm,
-    Math.sin(s * 4.4 + phase) * amp + Math.sin(s * Math.PI) * arc,
-  ];
-  const end = mainPt(1);
-  const cx = end[0];
-  const cy = end[1] + R;
-  const a0 = -Math.PI / 2;
-  const curlPt = (k) => {
-    const ang = a0 + k * turns * 2 * Math.PI;
-    const r = R * (1 - k) + 12 * k;
-    return [cx + r * Math.cos(ang), cy + r * Math.sin(ang)];
-  };
-  // raw points carry a curl parameter: 0 along the main run,
-  // rising to 1 at the spiral tip, so the draw can taper the
-  // glyph scale into the curl and keep the spiral open
-  const raw = [];
-  const STEPS = 420;
-  for (let i = 0; i <= STEPS; i++) {
-    const p = mainPt((i / STEPS) * 0.999);
-    raw.push([p[0], p[1], 0]);
-  }
-  for (let i = 1; i <= STEPS; i++) {
-    const p = curlPt(i / STEPS);
-    raw.push([p[0], p[1], i / STEPS]);
-  }
-  const sampled = [raw[0]];
-  let prev = raw[0];
-  let acc = 0;
-  for (let i = 1; i < raw.length; i++) {
-    const p = raw[i];
-    acc += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
-    prev = p;
-    if (acc >= spacing) {
-      acc = 0;
-      sampled.push(p);
-    }
-  }
-  const n = sampled.length;
-  const points = sampled.map((p, i) => {
-    const q = sampled[Math.min(i + 1, n - 1)];
-    const o = sampled[Math.max(i - 1, 0)];
-    const ang = Math.atan2(q[1] - o[1], q[0] - o[0]);
-    const frac = i / Math.max(1, n - 1);
-    let ch = tangentChar(ang);
-    if (frac > 0.94 && i % 2 === 0) ch = "o";
-    // path normal, used at draw time to lay the side passes
-    // that give the line its body
-    return { x: p[0], y: p[1], ch, frac, curlK: p[2], nx: -Math.sin(ang), ny: Math.cos(ang) };
-  });
-  const sparkles = [];
-  const SPARK_SCALES = [1.6, 1.6, 2.2, 2.2, 3.0];
-  for (let j = 0; j < 60; j++) {
-    const frac = 0.35 + Math.random() * 0.65;
-    const base = points[Math.min(n - 1, Math.round(frac * (n - 1)))];
-    sparkles.push({
-      x: base.x + (Math.random() - 0.5) * 80,
-      y: base.y + (Math.random() - 0.5) * 220,
-      frac,
-      ch: SPARKLE_CHARS[(Math.random() * SPARKLE_CHARS.length) | 0],
-      phase: Math.random() * 6.28,
-      speed: 2 + Math.random() * 2.5,
-      scale: SPARK_SCALES[(Math.random() * SPARK_SCALES.length) | 0],
-    });
-  }
-  return { points, sparkles, len, phase };
-};
+const STREAK_CHARS = ["-", "~", "·", "–"];
 
 export default function WindGrass({ opacity = 0.6 }) {
   const ref = useRef(null);
@@ -159,20 +62,20 @@ export default function WindGrass({ opacity = 0.6 }) {
 
     // --- sprite stamps, top-left anchored to match cell origins ---
     const spriteCache = new Map();
-    const sprite = (ch, colorCss, scale = 1) => {
-      const key = `${ch}|${colorCss}|${scale}`;
+    const sprite = (ch, colorCss) => {
+      const key = `${ch}|${colorCss}`;
       let sp = spriteCache.get(key);
       if (sp) return sp;
       if (spriteCache.size > 9000) spriteCache.clear();
       const ss = 2;
-      const wCss = CELL_ASPECT * u * scale + 4;
-      const hCss = u * scale + 4;
+      const wCss = CELL_ASPECT * u + 4;
+      const hCss = u + 4;
       const c = document.createElement("canvas");
       c.width = Math.ceil(wCss * ss);
       c.height = Math.ceil(hCss * ss);
       const g = c.getContext("2d");
       g.scale(ss, ss);
-      g.font = `${u * scale}px "Courier New", Courier, monospace`;
+      g.font = `${u}px "Courier New", Courier, monospace`;
       g.textBaseline = "top";
       g.fillStyle = colorCss;
       g.fillText(ch, 2, 2);
@@ -271,17 +174,12 @@ export default function WindGrass({ opacity = 0.6 }) {
         arc: dirDown * H * (0.08 + Math.random() * 0.1),
         sigmaX: W * 0.16,
         sigmaY: H * 0.12,
-        ribbons: Array.from({ length: 4 }, (_, i) => {
-          const r = buildRibbon(
-            W * (0.36 + Math.random() * 0.15),
-            34 + Math.random() * 13,
-            Math.random() * 6.28,
-            CELL_ASPECT * u * 2.6,
-          );
-          r.yOff = (i - 1.5) * H * 0.052 + (Math.random() - 0.5) * H * 0.03;
-          r.headLag = Math.random() * 70 - 20;
-          return r;
-        }),
+        streaks: Array.from({ length: 4 }, () => ({
+          lag: 40 + Math.random() * 120,
+          yOff: (Math.random() - 0.5) * H * 0.14,
+          segs: 6 + ((Math.random() * 4) | 0),
+          phase: Math.random() * 6.28,
+        })),
         band: null,
       };
       // the swept band: cells near the arc, already x-sorted
@@ -374,51 +272,19 @@ export default function WindGrass({ opacity = 0.6 }) {
           cell.flip,
         );
       }
-      // Ribbons ride the gust with their heads near its front.
-      // The reveal front grows with gust progress, so each
-      // line traces itself across and completes its curl,
-      // then the whole shape fades on the gust envelope.
-      // Body comes from three passes along the path: two side
-      // passes offset along the path normal at reduced light,
-      // then the bright center pass on top. Glyphs render at
-      // RIBBON_SCALE so the chain reads as a stroked line with
-      // soft edges rather than a dotted thread.
+      // streaks ride the gust, 3-4 visible trails
       const life = Math.sin(Math.PI * Math.min(1, Math.max(0, t)));
-      const reveal = Math.min(1, t * 1.75);
-      const PASSES = [
-        { off: -1, f: 0.7 },
-        { off: 1, f: 0.7 },
-        { off: 0, f: 1 },
-      ];
-      for (const r of gust.ribbons) {
-        const ox = gx - r.len * 0.8 + r.headLag;
-        const oy = gy + r.yOff;
-        for (const pass of PASSES) {
-          for (const p of r.points) {
-            if (p.frac > reveal) break;
-            // glyph scale tapers into the curl so the spiral
-            // stays an open ring instead of filling into a knot
-            const ds = Math.round(RIBBON_SCALE * (1 - 0.4 * p.curlK) * 4) / 4;
-            const wob = Math.sin(now * 1.7 + p.x * 0.018 + r.phase) * 1.6;
-            const sx = ox + p.x + p.nx * pass.off * u * ds * 0.42 - (ds - 1) * cellW * 0.5;
-            const sy = oy + p.y + wob + p.ny * pass.off * u * ds * 0.42 - (ds - 1) * u * 0.5;
-            if (sx < -30 || sx > W + 30 || inPanel(sx, sy)) continue;
-            let f = life * (1 - p.frac * 0.3) * pass.f;
-            if (pass.off === 0 && reveal - p.frac < 0.06) f *= 1.25;
-            if (f < 0.06) continue;
-            const col = p.frac > 0.86 ? RIBBON_GOLD : RIBBON_IVORY;
-            stamp(ctx, sprite(p.ch, shade(col, bucket(f, 0.05)), ds), sx, sy, false);
-          }
-        }
-        for (const s of r.sparkles) {
-          if (s.frac > reveal + 0.02) continue;
-          const sx = ox + s.x;
-          const sy = oy + s.y + Math.sin(now * 1.7 + s.x * 0.018 + r.phase) * 1.6;
-          if (sx < -30 || sx > W + 30 || inPanel(sx, sy)) continue;
-          const tw = 0.45 + 0.75 * Math.pow(0.5 + 0.5 * Math.sin(now * s.speed + s.phase), 2);
-          const f = life * tw * (1.5 - s.frac * 0.5);
-          if (f < 0.06) continue;
-          stamp(ctx, sprite(s.ch, shade(RIBBON_IVORY, bucket(f, 0.05)), s.scale), sx, sy, false);
+      for (const s of gust.streaks) {
+        const hx = gx - s.lag;
+        const hy = gy + s.yOff + Math.sin(now * 2 + s.phase) * 4;
+        for (let j = 0; j < s.segs; j++) {
+          const fade = (1 - j / s.segs) * life;
+          if (fade < 0.08) continue;
+          const sx = hx - j * cellW * 2.2;
+          const sy = hy + Math.sin(j * 0.7 - now * 3 + s.phase) * 2 + j * 1.1;
+          if (sx < -10 || sx > W + 10 || inPanel(sx, sy)) continue;
+          const ch = STREAK_CHARS[(j + ((s.phase * 10) | 0)) % STREAK_CHARS.length];
+          stamp(ctx, sprite(ch, shade("#f2ede1", bucket(0.55 * fade + 0.05, 0.06))), sx, sy, false);
         }
       }
     };

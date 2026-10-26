@@ -33,6 +33,18 @@
 
 html {
   scroll-behavior: smooth;
+  /* The document itself must refuse horizontal drift, not
+     just the body: on iOS the html box governs panning,
+     and a body-only clip still let pages slide sideways
+     (Nick's iPhone catch, Oct 25, 2026). */
+  overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
 }
 
 body {
@@ -728,6 +740,20 @@ body {
   padding: 3.5rem 1.25rem 4rem;
 }
 
+/* The converted grass grid is sparse at its outer rows
+   and columns, which read as a hard black frame around
+   the field on small screens. A deep inset shadow veils
+   the stage edges so the field melts into the page
+   instead of ending on a line. */
+.about-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 90px 42px var(--bg);
+}
+
 .ascii-field {
   position: absolute;
   inset: 0;
@@ -773,6 +799,10 @@ body {
   margin-right: auto;
 }
 
+.project-page section h2 {
+  text-transform: uppercase;
+}
+
 .project-page .stat-row {
   justify-content: center;
 }
@@ -798,11 +828,335 @@ body {
     padding: 1rem 1.25rem 0.8rem;
   }
 
+  /* At phone widths the brand wrapped to two lines and
+     the row strained the viewport; tighten both ends and
+     keep each piece on one line. */
+  .site-nav .brand {
+    font-size: 1.05rem;
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+  }
+
+  .site-nav .links {
+    gap: 1rem;
+  }
+
+  .site-nav .links a {
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
   .page {
     padding: 2rem 1.25rem 3rem;
   }
 
   .stat-row {
     gap: 1.5rem;
+  }
+}
+
+/* ---------- project page dressing (v3.33) ----------
+   Optional per-project layers, Dunkin first: a full-width
+   ASCII backdrop field behind the column, a mirrored pair
+   of spinning cups flanking the top on wide screens, the
+   click-to-play video, and the build pipeline drawn as
+   actual pipes in the project's splash color. */
+
+.project-page.has-backdrop {
+  position: relative;
+}
+
+.project-bg {
+  /* Fixed to the viewport: exact size by construction, so
+     the backdrop can never be the thing that makes the
+     page wider than the screen (the old 100vw bleed could
+     overshoot on mobile webviews and allow sideways
+     scrolling). The canvas inside fills it the same way
+     the sticky version filled the screen. */
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.sprinkle-fill {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.portal-flank-fill {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+/* The companion cube layer on the Portal page: fixed,
+   above the content, click-through everywhere except
+   the cube itself. Its z-index drops below the flank
+   backdrop while the cube is in a portal's back pocket,
+   which is what sells a back side exit. */
+.cube-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.cube-mover {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.cube-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+
+.cube-sprite:active {
+  cursor: grabbing;
+}
+
+.cube-label {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  margin-bottom: 4px;
+  font-family: var(--font-mono, "IBM Plex Mono", monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: cube-bob 1.6s ease-in-out infinite;
+}
+
+@keyframes cube-bob {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cube-label {
+    animation: none;
+  }
+}
+
+.candle-stack {
+  position: absolute;
+  inset: 0;
+}
+
+.candle-stack canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+/* The candle sky is dense (about half its cells carry a
+   glyph), so its edges melt into the page the same way the
+   About field's do: an inset veil over the fixed backdrop,
+   below the content. */
+.project-bg--candles::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 110px 46px var(--bg);
+  pointer-events: none;
+}
+
+.project-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Sections were capped at 68ch with no auto margins, so
+   they hung on the left of the column while the header
+   centered. Center the section box itself. */
+.project-page section {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.video-facade {
+  display: block;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1920 / 1045;
+  margin-top: 1.2rem;
+  padding: 0;
+  border: 1px solid var(--panel-edge);
+  outline: 1px solid var(--gold);
+  outline-offset: 5px;
+  background: var(--panel);
+  cursor: pointer;
+}
+
+.video-facade img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.video-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 74px;
+  height: 74px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--gold-bright);
+  background: rgba(10, 10, 9, 0.55);
+}
+
+.video-play-tri {
+  width: 0;
+  height: 0;
+  border-left: 19px solid var(--gold-bright);
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  transform: rotate(-45deg);
+}
+
+.video-facade:hover .video-play {
+  background: var(--splash);
+}
+
+.video-facade-label {
+  position: absolute;
+  left: 50%;
+  bottom: 0.9rem;
+  transform: translateX(-50%);
+  padding: 0.3rem 0.8rem;
+  background: rgba(10, 10, 9, 0.65);
+  color: var(--ink);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.video-shell {
+  width: 100%;
+  aspect-ratio: 1920 / 1045;
+  margin-top: 1.2rem;
+  border: 1px solid var(--panel-edge);
+  outline: 1px solid var(--gold);
+  outline-offset: 5px;
+  background: #000;
+}
+
+.video-mount,
+.video-mount iframe,
+.video-shell iframe,
+.video-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.pipeline .pipe-title {
+  color: var(--ink);
+  font-size: 1.3rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0.4rem 0;
+}
+
+.pipe-run {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0.7rem auto;
+}
+
+/* The pipes are converted image art on small canvases
+   (AsciiPipe). Centering only; the glyphs carry the paint. */
+.ascii-pipe {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
+/* StockDemo window (v3.48): the real dashboard in an iframe */
+.demo-window {
+  border: 1px solid var(--panel-edge);
+  border-top: 2px solid var(--splash);
+  background: #0d1117;
+  margin-top: 0.9rem;
+}
+.demo-chrome {
+  display: flex; align-items: center; gap: 0.9rem;
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--panel-edge);
+  background: var(--panel);
+}
+.demo-dots { display: inline-flex; gap: 0.4rem; }
+.demo-dots span {
+  width: 9px; height: 9px;
+  border: 1px solid var(--ink-faint); display: block;
+}
+.demo-chrome-title {
+  font-size: 0.82rem; color: var(--ink-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.demo-chrome-tag {
+  margin-left: auto; font-size: 0.72rem; color: var(--splash);
+  border: 1px solid var(--splash); padding: 0.1rem 0.45rem;
+  white-space: nowrap;
+}
+.demo-frame {
+  display: block; width: 100%; height: 880px; border: 0;
+  background: #0d1117;
+}
+@media (max-width: 760px) {
+  .demo-frame { height: 780px; }
+  .demo-chrome-tag { display: none; }
+}
+/* the demo window breaks out of the text column (v3.49):
+   wide enough to breathe on a desktop monitor, and the
+   100vw cap keeps it inside smaller screens */
+.project-page .demo-wide {
+  position: relative;
+  width: min(1240px, calc(100vw - 3rem));
+  max-width: none;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* OrbitRing hero stage (v3.50) */
+.orbit-stage {
+  position: relative;
+  width: min(900px, 94vw);
+  height: 500px;
+  margin: 4.6rem auto 0.2rem;
+}
+.orbit-fill {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+@media (max-width: 760px) {
+  .orbit-stage {
+    height: 340px;
+    margin-top: 3.4rem;
   }
 }

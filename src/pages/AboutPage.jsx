@@ -16,11 +16,19 @@ import ErrorBoundary from "../components/ErrorBoundary.jsx";
   source photo.
 */
 export default function AboutPage() {
+  // The settled desktop field brightness reads very dim
+  // on a phone, and small screens get the field nearly full
+  // strength (Nick's iPhone catch, Oct 25, 2026).
+  const fieldOpacity =
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 760px)").matches
+      ? 0.95
+      : 0.6;
   return (
     <main className="page about-page">
       <div className="about-stage">
         <ErrorBoundary>
-          <AsciiField opacity={0.6} />
+          <AsciiField opacity={fieldOpacity} />
         </ErrorBoundary>
         <div className="about-stage-content">
           <h1>About</h1>
@@ -34,13 +42,22 @@ export default function AboutPage() {
                 dataset and a real question.
               </p>
               <p>
+                I use AI assistance as leverage when I build. It lets me
+                take on hard projects early, like resolving a thousand-plus
+                Dunkin' locations across conflicting sources into one
+                verified route, turning days of work into hours. I know
+                how to get real work out of these tools: I steer them,
+                check their output closely, and make the judgment calls
+                myself.
+              </p>
+              <p>
                 Recent projects include a recreation of every Dunkin'
                 location in Massachusetts, built from multiple location
                 data sources and resolved into a single route of 1,019
-                stops and 2,356.9 miles; a stock research assistant that
-                screens and ranks tickers; and a Portal mod, in progress,
-                that rebuilds Titanfall-style movement inside Portal's
-                engine.
+                stops and 2,356.9 miles. There is also a stock research
+                assistant that screens and ranks tickers, and a Portal
+                mod, in progress, that rebuilds Titanfall-style movement
+                inside Portal's engine.
               </p>
               <p>
                 I am also working on a project using World Values Survey

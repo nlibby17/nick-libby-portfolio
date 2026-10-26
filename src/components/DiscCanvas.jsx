@@ -8,6 +8,7 @@ import {
   DISC_ROUT,
 } from "../lib/discParticles.js";
 import { spinState } from "../lib/spinState.js";
+import { COLS, ROWS } from "../lib/cupGeometry.js";
 import { glyphSprite, drawSprite, bucket } from "../lib/glyphAtlas.js";
 
 /*
@@ -23,6 +24,16 @@ import { glyphSprite, drawSprite, bucket } from "../lib/glyphAtlas.js";
   prototype: Kepler speeds, tangential stretch, brightness
   boosted on the approach side, soft fades at the band edges,
   glyph sprite stamps instead of fillText.
+
+  Occlusion (Nick, Oct 25, 2026): the cup canvas is glyphs on
+  transparency, so far-arc particles used to shine straight
+  through the cup's body and read as crossing it instead of
+  passing behind it. The back half now tests each particle
+  against the cup renderer's own hit grid, published on
+  spinState every tick: a particle whose cell the cup
+  occupies is skipped, and one cell out it dims, so the far
+  arc dips behind the silhouette and comes back out the
+  other side.
 */
 const CELL_ASPECT = 0.6;
 const particles = buildParticles(sunGrid);
@@ -57,6 +68,43 @@ export default function DiscCanvas({ half }) {
       // The layer is 200% of the stage width by CSS, and the
       // sphere radius is 0.58 stage widths: 0.29 layer widths.
       const sphereR = 0.29 * w;
+      // Cup silhouette test for the back half, in the same
+      // cell math CupCanvas draws with: map a layer point
+      // into the stage, then into the renderer's grid, and
+      // ask the published hit grid whether the cup is there.
+      // 2 = inside the silhouette, 1 = one cell out (the dim
+      // band), 0 = clear.
+      const back = half === "back";
+      const hits =
+        back && spinState.frame ? spinState.frame.hits : null;
+      let occl = null;
+      if (hits) {
+        const stage = layer.parentElement;
+        const sw = stage.clientWidth;
+        const sh = stage.clientHeight;
+        const sx0 = (w - sw) / 2;
+        const sy0 = (h - sh) / 2;
+        const uC = Math.max(sw / (COLS * CELL_ASPECT), sh / ROWS);
+        const oxC = (sw - COLS * CELL_ASPECT * uC) / 2;
+        const oyC = (sh - ROWS * uC) / 2;
+        occl = (px, py) => {
+          const gx = Math.floor((px - sx0 - oxC) / (CELL_ASPECT * uC));
+          const gy = Math.floor((py - sy0 - oyC) / uC);
+          if (gx < -1 || gx > COLS || gy < -1 || gy > ROWS) return 0;
+          let near = false;
+          for (let yy = gy - 1; yy <= gy + 1; yy++) {
+            if (yy < 0 || yy >= ROWS) continue;
+            for (let xx = gx - 1; xx <= gx + 1; xx++) {
+              if (xx < 0 || xx >= COLS) continue;
+              if (hits[yy * COLS + xx] > 0.25) {
+                if (xx === gx && yy === gy) return 2;
+                near = true;
+              }
+            }
+          }
+          return near ? 1 : 0;
+        };
+      }
       const t = spinState.time || (performance.now() - t0) / 1000;
       const u = Math.max(
         window.innerWidth / (sunGrid.cols * CELL_ASPECT),
@@ -65,6 +113,12 @@ export default function DiscCanvas({ half }) {
       for (const p of particles) {
         const pt = discPoint(p, t, comX, comY, sphereR);
         if (pt.behind !== (half === "back")) continue;
+        let dim = 1;
+        if (occl) {
+          const o = occl(pt.x, pt.y);
+          if (o === 2) continue; // behind the cup: gone
+          if (o === 1) dim = 0.45; // slipping behind the rim
+        }
         const fadeR = Math.min(
           1,
           (DISC_ROUT - p.rr) / 0.17,
@@ -72,7 +126,7 @@ export default function DiscCanvas({ half }) {
         );
         const dopp = 0.78 + 0.4 * Math.cos(pt.a);
         const b = bucket(
-          Math.max(0.25, Math.min(1.75, fadeR * dopp * 1.25)),
+          Math.max(0.25, Math.min(1.75, fadeR * dopp * 1.25 * dim)),
           0.1,
         );
         const sp = glyphSprite(p.ch, shade(p.col, b), u, p.rr < 1.04);
