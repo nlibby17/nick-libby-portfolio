@@ -74,6 +74,7 @@ export const projects = [
     cardType: "tool",
     splash: "var(--splash-stock)",
     backdrop: "candles",
+    demo: true,
     featured: false,
     tagline:
       "A local stock screener that ranks a customizable U.S. universe on five factors, with a scoring model you can read.",
@@ -86,21 +87,7 @@ export const projects = [
       },
       {
         heading: "The dashboard",
-        body: "Results open in a React dashboard with five views: Home, Top Candidates, Stock Comparison, Research, and Advanced. Reports are stored in local SQLite history, so results stay reproducible and comparable over time, and any ranking can be downloaded as a CSV.",
-        images: [
-          {
-            src: "/images/stock-app/dashboard-stock-comparison.jpg",
-            alt: "Stock Comparison view with two stocks side by side, their total scores, and a factor score bar chart",
-            caption:
-              "The Stock Comparison view: two candidates side by side across all five factors. Interface captured October 13, 2026, from a saved report. An interface example, not current market prices.",
-          },
-          {
-            src: "/images/stock-app/dashboard-research-summary.jpg",
-            alt: "Stock Research Assistant research view with factor scores and data coverage for a selected company",
-            caption:
-              "The research view keeps the deterministic score separate from qualitative research and filing evidence.",
-          },
-        ],
+        body: "The demo above mirrors the app's Home view with the candidate table and the sector snapshot. The full app opens results in a React dashboard with five views: Home, Top Candidates, Stock Comparison, Research, and Advanced. Reports are stored in local SQLite history, so results stay reproducible and comparable over time, and any ranking can be downloaded as a CSV.",
       },
       {
         heading: "Under the hood",

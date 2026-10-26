@@ -1,4 +1,5 @@
 import VideoEmbed from "../components/VideoEmbed.jsx";
+import StockDemo from "../components/StockDemo.jsx";
 import SprinkleField from "../components/SprinkleField.jsx";
 import CandleField from "../components/CandleField.jsx";
 import AsciiPipe from "../components/AsciiPipe.jsx";
@@ -108,6 +109,8 @@ export default function ProjectPage({ project, onNavigate }) {
             ))}
           </div>
         )}
+
+        {project.demo && <StockDemo />}
 
         {project.video && (
           <section>

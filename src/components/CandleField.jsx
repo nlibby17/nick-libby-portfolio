@@ -15,8 +15,8 @@ import { bucket } from "../lib/glyphAtlas.js";
 
   - A diagonal light swipe on a timed cycle, the same
     mechanism as the pipe shine on the Dunkin page: every
-    six and a half seconds a soft band of light crosses the
-    whole field diagonally over about two seconds, cells
+    seven seconds a soft band of light crosses the
+    whole field diagonally over about two and a half seconds, cells
     brightening as the front passes over them, then still
     again. Brightening is a brighter glyph stamped over the
     base copy; nothing is erased, so nothing can artifact.
@@ -33,8 +33,8 @@ const SEED = 133233;
 const POINTER_RADIUS = 230;
 const SPRING_K = 110;
 const SPRING_C = 8.5;
-const SWIPE_PERIOD = 6.5;
-const SWIPE_DUR = 1.9;
+const SWIPE_PERIOD = 7.0;
+const SWIPE_DUR = 2.5;
 
 function mulberry32(seed) {
   let a = seed >>> 0;
