@@ -4,44 +4,49 @@ import { shade } from "../lib/discParticles.js";
 import { bucket } from "../lib/glyphAtlas.js";
 
 /*
-  CandleField: the Stock page backdrop. Nick's own generated
-  candle sky (a galaxy, nebula banks, and crystal candlesticks
-  standing in for stars), converted with the site converter.
+  CandleField, second architecture (Nick approved the plan
+  Oct 25, 2026 after two patch-based versions kept carving
+  dark boxes into bright regions). Two stacked canvases:
 
-  Life, per Nick's direction after the first quiet version:
-  it is a starfield, so it should sparkle harder than the
-  grass does. A large seeded share of the cells twinkles on
-  sine curves, dozens of heroes flare bright, and three
-  nebula glows breathe out of phase underneath. The whole
-  sky also breathes as one body: the base blit runs through
-  a brightness filter oscillating about a quarter of the
-  field's brightness, because additive glows alone cannot
-  swell glyphs that already sit near their color ceilings.
-  The sky is mouse-reactive too: cells near the pointer are
-  pushed radially away and lit up, each riding its own
-  spring, so when the pointer leaves they overshoot and
-  rubber-band back into place.
+  - Base canvas: the far sky, stamped once per resize. It
+    breathes through a CSS filter on the element itself, so
+    the swell is composited by the browser and never redraws
+    a pixel. A whisper of transform sway gives it drift.
+  - FX canvas: transparent, cleared every frame, and it only
+    ever draws glyph-shaped marks. Brightening is a brighter
+    glyph stamped over the base. Dimming or hiding is the
+    same glyph drawn in black at partial alpha, so the mask
+    is always the star's own shape. Nothing paints or
+    restores a rectangle anywhere, so rectangular artifacts
+    have no mechanism to exist.
 
-  Erasing rule (v3.42 fix): animated cells are never wiped
-  with a background fill. The sky is dense, every cell rect
-  holds slivers of its neighbors, and a fill carves a
-  visible black box. Instead the cell's home patch is
-  re-blitted from the base image before re-stamping, which
-  restores the neighborhood exactly.
+  Populations, all seeded so the sky is stable per visit:
+  - Near layer: the brightest slice of cells. It truly
+    drifts across the far sky and wraps, which is where the
+    parallax depth comes from. Near cells are never stamped
+    into the base.
+  - Giants: the largest connected candle bodies found in the
+    grid. They flicker like flames, a fast two-sine jitter
+    applied to their near-layer stamps.
+  - Nebula set: the dim blue-dominant cells. Light waves
+    spawn every so often and sweep diagonally; nebula cells
+    inside the band flare as it passes.
+  - Reactive set: about a tenth of all cells ride springs
+    around the pointer, pushed out and lit, overshooting
+    home when the pointer leaves. On the FX layer a displaced
+    star is a glyph-shaped fade at its post plus its glyph
+    stamped at the displaced position.
 
-  Architecture follows WindGrass: one canvas, an offscreen
-  base stamped from sprites, every frame blits the base back
-  and re-stamps the animated cells at their current shade
-  and position. The twinkle and reactive populations are
-  disjoint. The grid is cover-fit to the viewport and
-  center-cropped; it never tiles. Reduced motion draws the
-  base once, no springs, no twinkle.
+  Reduced motion: base sky only, still and unfiltered.
 */
 const CELL_ASPECT = 0.6;
 const SEED = 133233;
 const POINTER_RADIUS = 230;
 const SPRING_K = 110;
 const SPRING_C = 8.5;
+const NEAR_CAP = 2400;
+const DRIFT_VX = -3.4; // px per second, near layer
+const DRIFT_VY = 0.55;
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -54,29 +59,36 @@ function mulberry32(seed) {
   };
 }
 
-const GLOWS = [
-  { fx: 0.16, fy: 0.3, r: 0.42, hue: "96,64,170", period: 12, phase: 0.0 },
-  { fx: 0.82, fy: 0.62, r: 0.46, hue: "52,84,150", period: 16, phase: 2.1 },
-  { fx: 0.55, fy: 0.88, r: 0.4, hue: "130,58,128", period: 10, phase: 4.2 },
-];
+const lumOf = (hex) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return { r, g, b, lum: (0.299 * r + 0.587 * g + 0.114 * b) / 255 };
+};
 
 export default function CandleField({ opacity = 0.6 }) {
-  const ref = useRef(null);
+  const baseRef = useRef(null);
+  const fxRef = useRef(null);
 
   useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const stage = canvas.parentElement;
-    const ctx = canvas.getContext("2d");
+    const baseCanvas = baseRef.current;
+    const fxCanvas = fxRef.current;
+    if (!baseCanvas || !fxCanvas) return;
+    const stage = baseCanvas.parentElement.parentElement;
+    const bctx = baseCanvas.getContext("2d");
+    const ctx = fxCanvas.getContext("2d");
     let raf = 0;
     let W = 0;
     let H = 0;
     let u = 0;
     let visible = true;
-    let baseImg = null;
-    let twinkles = [];
-    let reactives = [];
+    let nearCells = [];
+    let nebulaCells = [];
+    let farReactive = [];
+    let giants = [];
     const pointer = { x: -9999, y: -9999, active: false, strength: 0 };
+    let waves = [];
+    let nextWaveAt = 5;
 
     const spriteCache = new Map();
     const sprite = (ch, colorCss) => {
@@ -103,23 +115,10 @@ export default function CandleField({ opacity = 0.6 }) {
     const stamp = (c2d, sp, gx, gy) => {
       c2d.drawImage(sp.c, gx - 2, gy - 2, sp.w, sp.h);
     };
-    // Restore a cell's home patch from the base image
-    // (device-pixel source rect), repairing neighbor slivers
-    // exactly. Margin covers sprite overhang.
-    const restorePatch = (x, y) => {
-      if (!baseImg) return;
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      const cellW = CELL_ASPECT * u;
-      const px = Math.max(0, x - 3);
-      const py = Math.max(0, y - 3);
-      const pw = Math.min(W - px, cellW + 6);
-      const ph = Math.min(H - py, u + 6);
-      if (pw <= 0 || ph <= 0) return;
-      ctx.drawImage(
-        baseImg,
-        px * dpr, py * dpr, pw * dpr, ph * dpr,
-        px, py, pw, ph,
-      );
+    const stampAlpha = (sp, gx, gy, alpha) => {
+      ctx.globalAlpha = alpha;
+      stamp(ctx, sp, gx, gy);
+      ctx.globalAlpha = 1;
     };
 
     const buildBase = () => {
@@ -127,130 +126,157 @@ export default function CandleField({ opacity = 0.6 }) {
       H = stage.clientHeight;
       if (!W || !H) return;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
-      canvas.width = Math.round(W * dpr);
-      canvas.height = Math.round(H * dpr);
-      canvas.style.width = `${W}px`;
-      canvas.style.height = `${H}px`;
-      // cover-fit: one grid, scaled to cover, centered, cropped
+      for (const cv of [baseCanvas, fxCanvas]) {
+        cv.width = Math.round(W * dpr);
+        cv.height = Math.round(H * dpr);
+        cv.style.width = `${W}px`;
+        cv.style.height = `${H}px`;
+      }
       u = Math.max(W / (grid.cols * CELL_ASPECT), H / grid.rows);
       const cellW = CELL_ASPECT * u;
       const ox = (W - grid.cols * cellW) / 2;
       const oy = (H - grid.rows * u) / 2;
       spriteCache.clear();
 
-      const cells = [];
-      for (let y = 0; y < grid.rows; y++) {
-        for (let x = 0; x < grid.cols; x++) {
-          const ci = grid.cells[y][x];
+      const all = [];
+      const byCoord = new Map();
+      for (let gy = 0; gy < grid.rows; gy++) {
+        for (let gx = 0; gx < grid.cols; gx++) {
+          const ci = grid.cells[gy][gx];
           if (ci < 0) continue;
-          const px = ox + x * cellW;
-          const py = oy + y * u;
+          const px = ox + gx * cellW;
+          const py = oy + gy * u;
           if (px < -cellW || px > W || py < -u || py > H) continue;
-          cells.push({ x: px, y: py, ch: grid.lines[y][x], col: grid.palette[ci] });
+          const col = grid.palette[ci];
+          const cell = {
+            x: px, y: py, gx, gy,
+            ch: grid.lines[gy][gx], col,
+            ...lumOf(col),
+            giant: -1, spring: null,
+          };
+          all.push(cell);
+          byCoord.set(`${gx},${gy}`, cell);
         }
       }
 
-      baseImg = document.createElement("canvas");
-      baseImg.width = canvas.width;
-      baseImg.height = canvas.height;
-      const bg = baseImg.getContext("2d");
-      bg.scale(dpr, dpr);
-      bg.fillStyle = "#0a0a09";
-      bg.fillRect(0, 0, W, H);
-      for (const cell of cells) {
-        stamp(bg, sprite(cell.ch, cell.col), cell.x, cell.y);
+      // giants: largest connected bodies in the grid
+      const seen = new Set();
+      const comps = [];
+      for (const cell of all) {
+        const key = `${cell.gx},${cell.gy}`;
+        if (seen.has(key)) continue;
+        const comp = [];
+        const stack = [cell];
+        seen.add(key);
+        while (stack.length) {
+          const c = stack.pop();
+          comp.push(c);
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const nk = `${c.gx + dx},${c.gy + dy}`;
+            if (seen.has(nk)) continue;
+            const n = byCoord.get(nk);
+            if (n) {
+              seen.add(nk);
+              stack.push(n);
+            }
+          }
+        }
+        if (comp.length >= 25) comps.push(comp);
       }
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(baseImg, 0, 0);
+      comps.sort((a, b) => b.length - a.length);
+      const rand0 = mulberry32(SEED + 7);
+      giants = comps.slice(0, 16).map(() => ({
+        phase: rand0() * 6.28,
+        speed: 0.9 + rand0() * 0.5,
+      }));
+      comps.slice(0, 16).forEach((comp, gi) => {
+        for (const c of comp) c.giant = gi;
+      });
 
-      // Seeded populations, disjoint: reactive cells get picked
-      // first, twinkles draw from what remains.
+      // near layer: the brightest slice, capped
+      const sorted = [...all].sort((a, b) => b.lum - a.lum);
+      const nearSet = new Set(sorted.slice(0, NEAR_CAP));
+      nearCells = [...nearSet];
+      nebulaCells = all.filter(
+        (c) => !nearSet.has(c) && c.b > c.r && c.b > c.g && c.lum < 0.34,
+      );
+      const nebulaSet = new Set(nebulaCells);
+      const diag = Math.hypot(W, H) || 1;
+      for (const c of nebulaCells) {
+        c.axis = (c.x * 0.8 + c.y * 0.6) / diag;
+      }
+
+      // far sky onto the base canvas: everything not near
+      bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      bctx.fillStyle = "#0a0a09";
+      bctx.fillRect(0, 0, W, H);
+      for (const cell of all) {
+        if (nearSet.has(cell)) continue;
+        stamp(bctx, sprite(cell.ch, cell.col), cell.x, cell.y);
+      }
+
+      // springs: a seeded tenth of all cells, disjoint handling
+      // per layer at draw time
       const rand = mulberry32(SEED);
-      reactives = [];
-      const reactiveSet = new Set();
-      for (const cell of cells) {
-        if (rand() < 0.14) {
-          reactives.push({ cell, ox: 0, oy: 0, vx: 0, vy: 0 });
-          reactiveSet.add(cell);
+      farReactive = [];
+      for (const cell of all) {
+        if (rand() < 0.1) {
+          cell.spring = { ox: 0, oy: 0, vx: 0, vy: 0 };
+          if (!nearSet.has(cell) && !nebulaSet.has(cell)) {
+            farReactive.push(cell);
+          }
         }
       }
-      twinkles = [];
-      for (const cell of cells) {
-        if (reactiveSet.has(cell)) continue;
-        if (rand() < 0.075) {
-          twinkles.push({
-            cell,
-            phase: rand() * 6.28,
-            speed: 0.4 + rand() * 0.75,
-            amp: 0.2 + rand() * 0.25,
-            hero: false,
-          });
-        }
-      }
-      for (let i = 0; i < 64 && cells.length; i++) {
-        const cell = cells[(rand() * cells.length) | 0];
-        if (reactiveSet.has(cell)) continue;
-        twinkles.push({
-          cell,
-          phase: rand() * 6.28,
-          speed: 0.7 + rand() * 1.2,
-          amp: 0.5 + rand() * 0.35,
-          hero: true,
-        });
-      }
+      waves = [];
+      nextWaveAt = performance.now() / 1000 + 5;
     };
 
-    const draw = (now, dt) => {
-      if (!baseImg) return;
+    const springStep = (cell, dt, cx, cy) => {
+      const s = cell.spring;
+      let ax = -SPRING_K * s.ox - SPRING_C * s.vx;
+      let ay = -SPRING_K * s.oy - SPRING_C * s.vy;
+      let flare = 1;
+      if (pointer.strength > 0.02) {
+        const dx = cx - pointer.x;
+        const dy = cy - pointer.y;
+        const d2 = dx * dx + dy * dy;
+        const R2 = POINTER_RADIUS * POINTER_RADIUS;
+        if (d2 < R2 && d2 > 0.01) {
+          const d = Math.sqrt(d2);
+          const fall = 1 - d / POINTER_RADIUS;
+          const push = 3200 * fall * fall * pointer.strength;
+          ax += (dx / d) * push;
+          ay += (dy / d) * push;
+          flare = 1 + 0.55 * fall * pointer.strength;
+        }
+      }
+      s.vx += ax * dt;
+      s.vy += ay * dt;
+      s.ox += s.vx * dt;
+      s.oy += s.vy * dt;
+      return flare;
+    };
+
+    const drawFx = (now, dt) => {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // The breath: the whole sky swells and settles by about
-      // a quarter of its brightness on a slow wave with a
-      // smaller faster ripple on top. A filter on the blit
-      // scales the glyphs themselves; engines without canvas
-      // filter support ignore it and the sky sits steady.
+      ctx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const cellW = CELL_ASPECT * u;
+
+      pointer.strength += ((pointer.active ? 1 : 0) - pointer.strength) *
+        Math.min(1, dt * 5);
+
+      // breathing and sway ride the base element itself
       const breathe =
         1 +
         0.2 * Math.sin((now / 14) * 6.28) +
         0.05 * Math.sin((now / 5.3) * 6.28 + 1.7);
-      try {
-        ctx.filter = `brightness(${breathe.toFixed(3)})`;
-      } catch {
-        /* steady sky */
-      }
-      ctx.drawImage(baseImg, 0, 0);
-      try {
-        ctx.filter = "none";
-      } catch {
-        /* steady sky */
-      }
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      baseCanvas.style.filter = `brightness(${breathe.toFixed(3)})`;
+      const sway = 7 * Math.sin((now / 55) * 6.28);
+      baseCanvas.style.transform = `translateX(${sway.toFixed(2)}px) scale(1.03)`;
 
-      // pointer presence eases in and out; the springs give
-      // the rubber band, this only gates the push force
-      pointer.strength += ((pointer.active ? 1 : 0) - pointer.strength) *
-        Math.min(1, dt * 5);
-
-      // breathing: slow nebula glows swelling out of phase
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      for (const g of GLOWS) {
-        const s = 0.5 + 0.5 * Math.sin((now / g.period) * 6.28 + g.phase);
-        const a = 0.04 + 0.1 * s;
-        const rad = g.r * W * (0.92 + 0.1 * s);
-        const grad = ctx.createRadialGradient(
-          g.fx * W, g.fy * H, 0,
-          g.fx * W, g.fy * H, rad,
-        );
-        grad.addColorStop(0, `rgba(${g.hue},${a})`);
-        grad.addColorStop(1, `rgba(${g.hue},0)`);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, W, H);
-      }
-      // a soft flare rides the pointer so the interaction
-      // reads even between stamps
+      // soft flare at the pointer
       if (pointer.strength > 0.02) {
         const rad = POINTER_RADIUS * 1.15;
         const grad = ctx.createRadialGradient(
@@ -262,65 +288,76 @@ export default function CandleField({ opacity = 0.6 }) {
         ctx.fillStyle = grad;
         ctx.fillRect(pointer.x - rad, pointer.y - rad, rad * 2, rad * 2);
       }
-      ctx.restore();
 
-      // twinkle: regulars pulse brighter over the base (a
-      // transparent sprite cannot darken what is under it, so
-      // the dim half of their cycle is left to the base);
-      // heroes run the full cycle, restoring their home patch
-      // from the base before re-stamping, so they truly dim
-      // as well as flare without carving black boxes
-      for (const t of twinkles) {
-        const b = bucket(1 + t.amp * Math.sin(now * t.speed + t.phase), 0.06);
-        if (t.hero) {
-          if (b === 1) continue;
-          restorePatch(t.cell.x, t.cell.y);
-          stamp(ctx, sprite(t.cell.ch, shade(t.cell.col, b)), t.cell.x, t.cell.y);
-        } else if (b > 1) {
-          stamp(ctx, sprite(t.cell.ch, shade(t.cell.col, b)), t.cell.x, t.cell.y);
+      // nebula light waves
+      if (now >= nextWaveAt) {
+        waves.push({ t0: now, dur: 4.5 });
+        nextWaveAt = now + 8 + Math.random() * 7;
+      }
+      waves = waves.filter((w) => now - w.t0 < w.dur);
+      for (const w of waves) {
+        const p = (now - w.t0) / w.dur;
+        const head = -0.15 + 1.3 * p;
+        const env = Math.pow(Math.sin(Math.PI * p), 1.5);
+        for (const c of nebulaCells) {
+          const dd = (c.axis - head) / 0.055;
+          const f = 1 + 1.1 * env * Math.exp(-(dd * dd));
+          const b = bucket(f, 0.08);
+          if (b <= 1) continue;
+          stamp(ctx, sprite(c.ch, shade(c.col, b)), c.x, c.y);
         }
       }
 
-      // reactive springs: pushed by the pointer, pulled home
-      // by the spring; overshoot is the rubber band
-      const cellW = CELL_ASPECT * u;
-      const R2 = POINTER_RADIUS * POINTER_RADIUS;
-      for (const r of reactives) {
-        const cx = r.cell.x + cellW * 0.5;
-        const cy = r.cell.y + u * 0.5;
-        let ax = -SPRING_K * r.ox - SPRING_C * r.vx;
-        let ay = -SPRING_K * r.oy - SPRING_C * r.vy;
-        let flare = 1;
-        if (pointer.strength > 0.02) {
-          const dx = cx - pointer.x;
-          const dy = cy - pointer.y;
-          const d2 = dx * dx + dy * dy;
-          if (d2 < R2 && d2 > 0.01) {
-            const d = Math.sqrt(d2);
-            const fall = 1 - d / POINTER_RADIUS;
-            const push = 3200 * fall * fall * pointer.strength;
-            ax += (dx / d) * push;
-            ay += (dy / d) * push;
-            flare = 1 + 0.55 * fall * pointer.strength;
-          }
+      // near layer: drift, flicker, springs
+      const dxT = now * DRIFT_VX;
+      const dyT = now * DRIFT_VY;
+      const spanX = W + cellW * 2;
+      const spanY = H + u * 2;
+      for (const cell of nearCells) {
+        let px = (cell.x + dxT) % spanX;
+        if (px < 0) px += spanX;
+        px -= cellW;
+        let py = (cell.y + dyT) % spanY;
+        if (py < 0) py += spanY;
+        py -= u;
+        let f = 1;
+        if (cell.giant >= 0) {
+          const g = giants[cell.giant];
+          const t = now * g.speed;
+          f =
+            1 +
+            0.17 *
+              (0.6 * Math.sin(t * 8.3 + g.phase) +
+                0.4 * Math.sin(t * 19.7 + g.phase * 1.7));
         }
-        r.vx += ax * dt;
-        r.vy += ay * dt;
-        r.ox += r.vx * dt;
-        r.oy += r.vy * dt;
-        const moved = Math.abs(r.ox) > 0.4 || Math.abs(r.oy) > 0.4;
+        let ox = 0;
+        let oy = 0;
+        let flare = 1;
+        if (cell.spring) {
+          // springs measure the pointer against the cell's
+          // current drifted position, not its home post
+          flare = springStep(cell, dt, px + cellW * 0.5, py + u * 0.5);
+          ox = cell.spring.ox;
+          oy = cell.spring.oy;
+        }
+        // near cells live only on this layer, so a dimmer
+        // stamp is simply a darker glyph; nothing to hide
+        const total = f * flare;
+        const b = bucket(Math.max(0.55, total), 0.05);
+        stamp(ctx, sprite(cell.ch, b === 1 ? cell.col : shade(cell.col, b)), px + ox, py + oy);
+      }
+
+      // far reactive cells: only while their spring is alive
+      for (const cell of farReactive) {
+        const s = cell.spring;
+        const flare = springStep(cell, dt, cell.x + cellW * 0.5, cell.y + u * 0.5);
+        const moved = Math.abs(s.ox) > 0.4 || Math.abs(s.oy) > 0.4;
         if (!moved && flare === 1) continue;
-        // restore the home patch from the base so the glyph
-        // does not double, then stamp at the displaced
-        // position, lit by proximity
-        restorePatch(r.cell.x, r.cell.y);
+        stampAlpha(sprite(cell.ch, "#000000"), cell.x, cell.y,
+          Math.min(0.9, Math.hypot(s.ox, s.oy) / 14 + 0.25));
         const b = bucket(flare, 0.06);
-        stamp(
-          ctx,
-          sprite(r.cell.ch, b === 1 ? r.cell.col : shade(r.cell.col, b)),
-          r.cell.x + r.ox,
-          r.cell.y + r.oy,
-        );
+        stamp(ctx, sprite(cell.ch, b === 1 ? cell.col : shade(cell.col, b)),
+          cell.x + s.ox, cell.y + s.oy);
       }
     };
 
@@ -328,14 +365,18 @@ export default function CandleField({ opacity = 0.6 }) {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let lastStart = 0;
     let lastStamp = 0;
+    let interval = 0.033;
     if (!reduced) {
       const loop = () => {
         const now = performance.now() / 1000;
-        if (visible && now - lastStart >= 0.055) {
+        if (visible && now - lastStart >= interval) {
           const dt = Math.min(0.033, lastStamp ? now - lastStamp : 0.016);
           lastStamp = now;
           lastStart = now;
-          draw(now, dt);
+          const t0 = performance.now();
+          drawFx(now, dt);
+          const cost = performance.now() - t0;
+          interval = cost > 22 ? 0.05 : 0.033;
         }
         raf = requestAnimationFrame(loop);
       };
@@ -375,11 +416,9 @@ export default function CandleField({ opacity = 0.6 }) {
   }, [opacity]);
 
   return (
-    <canvas
-      ref={ref}
-      className="sprinkle-fill"
-      style={{ opacity }}
-      aria-hidden="true"
-    />
+    <div className="candle-stack" style={{ opacity }} aria-hidden="true">
+      <canvas ref={baseRef} className="sprinkle-fill" />
+      <canvas ref={fxRef} className="sprinkle-fill" />
+    </div>
   );
 }

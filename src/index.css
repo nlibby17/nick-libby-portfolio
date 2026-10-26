@@ -885,6 +885,17 @@ body {
   display: block;
 }
 
+.candle-stack {
+  position: absolute;
+  inset: 0;
+}
+
+.candle-stack canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
 /* The candle sky is dense (about half its cells carry a
    glyph), so its edges melt into the page the same way the
    About field's do: an inset veil over the fixed backdrop,
