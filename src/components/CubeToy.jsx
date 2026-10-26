@@ -323,6 +323,29 @@ export default function CubeToy() {
     };
     st.layout = computePortalLayout(window.innerWidth, window.innerHeight);
     setPresent(!!st.layout);
+    // While the toy is live, page text is selectable only
+    // where a press starts on the text itself (see the
+    // cube-toy-live rules in index.css). The class comes
+    // off again when the toy unmounts.
+    document.body.classList.add("cube-toy-live");
+    // Enforcement for the same rule: some engines start a
+    // selection mid drag when the pointer crosses into
+    // selectable text, even when the press began on a
+    // non selectable element. Swallowing the mousedown for
+    // presses that start outside real text stops any
+    // selection from being born on those presses at all.
+    // Presses on links and other click targets still get
+    // their click, since click is a separate event.
+    const TEXT_SEL =
+      "p, h1, h2, h3, li, a, td, th, code, pre, .kicker, .lede, .caption, .backlink, .stat";
+    const onGuardedMousedown = (e) => {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if (t.closest(".cube-layer")) return;
+      if (t.closest(TEXT_SEL)) return;
+      e.preventDefault();
+    };
+    window.addEventListener("mousedown", onGuardedMousedown);
     // Spawn rule (Nick, Oct 26): the cube rests one cube
     // length to the right of where the middle body text
     // ends. The body text lives in the centered 68ch
@@ -340,6 +363,8 @@ export default function CubeToy() {
     render();
     window.addEventListener("resize", onResize);
     return () => {
+      document.body.classList.remove("cube-toy-live");
+      window.removeEventListener("mousedown", onGuardedMousedown);
       window.removeEventListener("resize", onResize);
       st.running = false;
       cancelAnimationFrame(st.raf);

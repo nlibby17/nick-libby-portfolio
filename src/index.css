@@ -983,6 +983,40 @@ body {
   z-index: 1;
 }
 
+/* Selection rule while the companion cube toy is live
+   (Portal page, wide screens): the content column as a
+   whole is not selectable, and the elements that carry
+   actual text opt back in. A selection can therefore
+   only start where a press lands on real text. Drags
+   that begin on the background, the margins, or deco
+   elements stay selection free, so hunting for the cube
+   does not paint paragraphs the press never touched.
+   Nick's fix, Oct 26. */
+body.cube-toy-live .project-content {
+  user-select: none;
+}
+body.cube-toy-live
+  .project-content
+  :where(
+    p,
+    h1,
+    h2,
+    h3,
+    li,
+    a,
+    td,
+    th,
+    code,
+    pre,
+    .kicker,
+    .lede,
+    .caption,
+    .backlink,
+    .stat
+  ) {
+  user-select: text;
+}
+
 /* Sections were capped at 68ch with no auto margins, so
    they hung on the left of the column while the header
    centered. Center the section box itself. */
