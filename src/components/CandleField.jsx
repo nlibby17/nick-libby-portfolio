@@ -12,20 +12,30 @@ import { bucket } from "../lib/glyphAtlas.js";
   it is a starfield, so it should sparkle harder than the
   grass does. A large seeded share of the cells twinkles on
   sine curves, dozens of heroes flare bright, and three
-  nebula glows breathe out of phase underneath. The sky is
-  also mouse-reactive: cells near the pointer are pushed
-  radially away and lit up, each riding its own spring, so
-  when the pointer leaves they overshoot and rubber-band
-  back into place.
+  nebula glows breathe out of phase underneath. The whole
+  sky also breathes as one body: the base blit runs through
+  a brightness filter oscillating about a quarter of the
+  field's brightness, because additive glows alone cannot
+  swell glyphs that already sit near their color ceilings.
+  The sky is mouse-reactive too: cells near the pointer are
+  pushed radially away and lit up, each riding its own
+  spring, so when the pointer leaves they overshoot and
+  rubber-band back into place.
+
+  Erasing rule (v3.42 fix): animated cells are never wiped
+  with a background fill. The sky is dense, every cell rect
+  holds slivers of its neighbors, and a fill carves a
+  visible black box. Instead the cell's home patch is
+  re-blitted from the base image before re-stamping, which
+  restores the neighborhood exactly.
 
   Architecture follows WindGrass: one canvas, an offscreen
   base stamped from sprites, every frame blits the base back
-  (so no stamp ever needs erasing by hand) and re-stamps the
-  animated cells at their current shade and position. The
-  twinkle and reactive populations are disjoint. The grid is
-  cover-fit to the viewport and center-cropped; it never
-  tiles. Reduced motion draws the base once, no springs, no
-  twinkle.
+  and re-stamps the animated cells at their current shade
+  and position. The twinkle and reactive populations are
+  disjoint. The grid is cover-fit to the viewport and
+  center-cropped; it never tiles. Reduced motion draws the
+  base once, no springs, no twinkle.
 */
 const CELL_ASPECT = 0.6;
 const SEED = 133233;
@@ -92,6 +102,24 @@ export default function CandleField({ opacity = 0.6 }) {
     };
     const stamp = (c2d, sp, gx, gy) => {
       c2d.drawImage(sp.c, gx - 2, gy - 2, sp.w, sp.h);
+    };
+    // Restore a cell's home patch from the base image
+    // (device-pixel source rect), repairing neighbor slivers
+    // exactly. Margin covers sprite overhang.
+    const restorePatch = (x, y) => {
+      if (!baseImg) return;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const cellW = CELL_ASPECT * u;
+      const px = Math.max(0, x - 3);
+      const py = Math.max(0, y - 3);
+      const pw = Math.min(W - px, cellW + 6);
+      const ph = Math.min(H - py, u + 6);
+      if (pw <= 0 || ph <= 0) return;
+      ctx.drawImage(
+        baseImg,
+        px * dpr, py * dpr, pw * dpr, ph * dpr,
+        px, py, pw, ph,
+      );
     };
 
     const buildBase = () => {
@@ -178,7 +206,26 @@ export default function CandleField({ opacity = 0.6 }) {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // The breath: the whole sky swells and settles by about
+      // a quarter of its brightness on a slow wave with a
+      // smaller faster ripple on top. A filter on the blit
+      // scales the glyphs themselves; engines without canvas
+      // filter support ignore it and the sky sits steady.
+      const breathe =
+        1 +
+        0.2 * Math.sin((now / 14) * 6.28) +
+        0.05 * Math.sin((now / 5.3) * 6.28 + 1.7);
+      try {
+        ctx.filter = `brightness(${breathe.toFixed(3)})`;
+      } catch {
+        /* steady sky */
+      }
       ctx.drawImage(baseImg, 0, 0);
+      try {
+        ctx.filter = "none";
+      } catch {
+        /* steady sky */
+      }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       // pointer presence eases in and out; the springs give
@@ -191,7 +238,7 @@ export default function CandleField({ opacity = 0.6 }) {
       ctx.globalCompositeOperation = "lighter";
       for (const g of GLOWS) {
         const s = 0.5 + 0.5 * Math.sin((now / g.period) * 6.28 + g.phase);
-        const a = 0.03 + 0.075 * s;
+        const a = 0.04 + 0.1 * s;
         const rad = g.r * W * (0.92 + 0.1 * s);
         const grad = ctx.createRadialGradient(
           g.fx * W, g.fy * H, 0,
@@ -220,15 +267,14 @@ export default function CandleField({ opacity = 0.6 }) {
       // twinkle: regulars pulse brighter over the base (a
       // transparent sprite cannot darken what is under it, so
       // the dim half of their cycle is left to the base);
-      // heroes run the full cycle with a wipe, so they truly
-      // dim as well as flare
-      const cellW0 = CELL_ASPECT * u;
+      // heroes run the full cycle, restoring their home patch
+      // from the base before re-stamping, so they truly dim
+      // as well as flare without carving black boxes
       for (const t of twinkles) {
         const b = bucket(1 + t.amp * Math.sin(now * t.speed + t.phase), 0.06);
         if (t.hero) {
           if (b === 1) continue;
-          ctx.fillStyle = "#0a0a09";
-          ctx.fillRect(t.cell.x - 0.5, t.cell.y - 0.5, cellW0 + 1, u + 1);
+          restorePatch(t.cell.x, t.cell.y);
           stamp(ctx, sprite(t.cell.ch, shade(t.cell.col, b)), t.cell.x, t.cell.y);
         } else if (b > 1) {
           stamp(ctx, sprite(t.cell.ch, shade(t.cell.col, b)), t.cell.x, t.cell.y);
@@ -264,11 +310,10 @@ export default function CandleField({ opacity = 0.6 }) {
         r.oy += r.vy * dt;
         const moved = Math.abs(r.ox) > 0.4 || Math.abs(r.oy) > 0.4;
         if (!moved && flare === 1) continue;
-        // wipe the home cell so the glyph does not double,
-        // then stamp at the displaced position, lit by
-        // proximity
-        ctx.fillStyle = "#0a0a09";
-        ctx.fillRect(r.cell.x - 0.5, r.cell.y - 0.5, cellW + 1, u + 1);
+        // restore the home patch from the base so the glyph
+        // does not double, then stamp at the displaced
+        // position, lit by proximity
+        restorePatch(r.cell.x, r.cell.y);
         const b = bucket(flare, 0.06);
         stamp(
           ctx,
