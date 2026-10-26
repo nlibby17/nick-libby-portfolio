@@ -16,11 +16,19 @@ import ErrorBoundary from "../components/ErrorBoundary.jsx";
   source photo.
 */
 export default function AboutPage() {
+  // The settled desktop field brightness reads very dim
+  // on a phone; small screens get the field nearly full
+  // strength (Nick's iPhone catch, Oct 25, 2026).
+  const fieldOpacity =
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 760px)").matches
+      ? 0.95
+      : 0.6;
   return (
     <main className="page about-page">
       <div className="about-stage">
         <ErrorBoundary>
-          <AsciiField opacity={0.6} />
+          <AsciiField opacity={fieldOpacity} />
         </ErrorBoundary>
         <div className="about-stage-content">
           <h1>About</h1>

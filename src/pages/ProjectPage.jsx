@@ -84,11 +84,13 @@ export default function ProjectPage({ project, onNavigate }) {
         >
           ← All projects
         </a>
-        <p className="kicker" style={{ marginTop: "1.6rem" }}>
-          {project.status ? project.status : "Project"}
-        </p>
+        {project.status && (
+          <p className="kicker" style={{ marginTop: "1.6rem" }}>
+            {project.status}
+          </p>
+        )}
         <h1>{project.title}</h1>
-        <p className="lede">{project.lede}</p>
+        {project.lede && <p className="lede">{project.lede}</p>}
 
         {project.stats && (
           <div className="stat-row" style={{ marginTop: "1.2rem" }}>
