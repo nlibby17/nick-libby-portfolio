@@ -21,7 +21,6 @@ export const projects = [
       { value: "2,356.9", label: "miles" },
       { value: "86.1", label: "driving hours" },
     ],
-    lede: "One state, every store, one route.",
     backdrop: "sprinkles",
     video: {
       heading: "Watch",

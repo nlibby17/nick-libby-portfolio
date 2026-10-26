@@ -3,19 +3,24 @@ import gridDown from "../assets/pipe-grid-down.json";
 import gridDouble from "../assets/pipe-grid-double.json";
 
 /*
-  AsciiPipe (v2, Nick's call, Oct 25, 2026): the pipeline
-  pipes are real converted art now. A Mario-style orange
-  pipe was drawn as an image and run through the site's
-  image-to-ASCII converter; the variants are grid surgery
-  on that one conversion. "down" is the grid flipped, so
-  its only opening faces down (the lead-in at the top of
-  the pipeline). "double" is flange, body, mirrored
-  flange: an opening at both ends, used for every
-  connector after the first and the closing run.
-  A diagonal shine sweeps all pipes in sync off one
-  shared epoch clock: a 1.3 second pass inside every
-  5 second period, brightening cells near a diagonal
-  band. Reduced motion renders the plain grid once.
+  AsciiPipe (final form, Nick approved Oct 25, 2026): the
+  pipeline pipes are converted art with a three step
+  recipe. A photorealistic orange flanged pipe was
+  generated, its texture warped into the hard rectangular
+  geometry of a Mario style drawing (square corners, a
+  straight step between flange and body), then flattened
+  like game art (smoothed, posterized, mid-tones lifted)
+  and run through the site's image-to-ASCII converter.
+  Variants are grid surgery on that one conversion.
+  "down" is the grid flipped, so its only opening faces
+  down (the lead-in at the top of the pipeline). "double"
+  is flange, body, mirrored flange: an opening at both
+  ends, used for every connector after the first and the
+  closing run. A diagonal shine sweeps all pipes in sync
+  off one shared epoch clock: a 1.3 second pass inside
+  every 5 second period, brightening cells near a
+  diagonal band. Reduced motion renders the plain grid
+  once.
 */
 const GRIDS = { down: gridDown, double: gridDouble };
 const CHAR_ASPECT = 0.6;
@@ -43,7 +48,7 @@ export default function AsciiPipe({ variant = "double" }) {
     if (!canvas) return undefined;
     const grid = GRIDS[variant] || gridDouble;
     const ctx = canvas.getContext("2d");
-    const font = '15px "Courier New", Courier, monospace';
+    const font = '12px "Courier New", Courier, monospace';
     ctx.font = font;
     const cellW = ctx.measureText("M").width;
     const cellH = cellW / CHAR_ASPECT;

@@ -930,8 +930,8 @@ body {
 }
 
 .pipeline .pipe-title {
-  color: var(--splash);
-  font-size: 0.95rem;
+  color: var(--ink);
+  font-size: 1.3rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   margin: 0.4rem 0;
