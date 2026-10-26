@@ -34,9 +34,12 @@ import { computePortalLayout } from "../lib/portalGeometry.js";
     exits the other back heading away, where the solid
     screen edge catches it.
   - A held cube that touches a portal zaps through at
-    its current velocity (Nick's safeguard). The grab
-    offset shifts by the teleport delta, a virtual hand
-    that comes through the portal with the cube.
+    its current velocity, and the grab breaks the
+    instant it goes through (Nick's correction after
+    live play, Oct 26): the cube drops with whatever
+    velocity it was travelling at, and it can be caught
+    again mid flight, either by a fresh press or by the
+    still held pointer reaching it.
   - Sprites are baked once in three palettes, idle,
     hover, and lit for held. No filters, no per frame
     recoloring. The loop sleeps when the cube rests.
@@ -121,6 +124,8 @@ export default function CubeToy() {
     onFloor: false,
     behind: false,
     grabOff: { x: 0, y: 0 },
+    pointerId: null,
+    canCatch: false,
     samples: [],
     layout: null,
     sprites: null,
@@ -199,15 +204,29 @@ export default function CubeToy() {
           -0.95,
           Math.min(0.95, (st.pos.y - P.mouthCy) / P.mouthHH),
         );
-        const nx = E.mouthCx - rawU * E.mouthHW;
-        const ny = E.mouthCy + rawV * E.mouthHH;
-        const dx = nx - st.pos.x;
-        const dy = ny - st.pos.y;
-        st.pos.x = nx;
-        st.pos.y = ny;
+        st.pos.x = E.mouthCx - rawU * E.mouthHW;
+        st.pos.y = E.mouthCy + rawV * E.mouthHH;
         if (st.held) {
-          st.grabOff.x -= dx;
-          st.grabOff.y -= dy;
+          // The grab breaks at the portal mouth. The cube
+          // keeps the velocity it was travelling at and
+          // falls, and the pointer can catch it again.
+          st.held = false;
+          st.canCatch = true;
+          st.angVel = Math.max(-9, Math.min(9, st.vel.x * 0.004));
+          st.samples = [];
+          st.hovering = false;
+          st.drawVariant("idle");
+          if (
+            st.pointerId !== null &&
+            canvas.hasPointerCapture &&
+            canvas.hasPointerCapture(st.pointerId)
+          ) {
+            try {
+              canvas.releasePointerCapture(st.pointerId);
+            } catch {
+              // capture already gone, nothing to release
+            }
+          }
         }
         st.immune = true;
         break;
@@ -304,7 +323,20 @@ export default function CubeToy() {
     };
     st.layout = computePortalLayout(window.innerWidth, window.innerHeight);
     setPresent(!!st.layout);
-    st.pos = { x: window.innerWidth / 2, y: floorY() };
+    // Spawn rule (Nick, Oct 26): the cube rests one cube
+    // length to the right of where the middle body text
+    // ends. The body text lives in the centered 68ch
+    // sections, so its right edge is read once here at
+    // mount, never inside the loop.
+    const W0 = window.innerWidth;
+    const sec = document.querySelector(".project-content section");
+    const textRight = sec
+      ? sec.getBoundingClientRect().right
+      : W0 / 2 + 326;
+    const spawnX = st.layout
+      ? Math.max(HW + 8, Math.min(W0 - HW - 8, textRight + SPR_W + HW))
+      : W0 / 2;
+    st.pos = { x: spawnX, y: floorY() };
     render();
     window.addEventListener("resize", onResize);
     return () => {
@@ -333,6 +365,8 @@ export default function CubeToy() {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     st.held = true;
+    st.pointerId = e.pointerId;
+    st.canCatch = false;
     st.immune = false;
     st.grabOff = { x: e.clientX - st.pos.x, y: e.clientY - st.pos.y };
     st.samples = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
@@ -345,7 +379,28 @@ export default function CubeToy() {
 
   const onMove = (e) => {
     const st = s.current;
-    if (!st.held) return;
+    if (!st.held) {
+      // After a portal drop, the still held pointer can
+      // catch the cube again in mid flight by reaching it.
+      if (st.canCatch && e.buttons === 1) {
+        st.held = true;
+        st.pointerId = e.pointerId;
+        st.canCatch = false;
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          // capture is a nicety here, the drag still works
+        }
+        st.grabOff = { x: e.clientX - st.pos.x, y: e.clientY - st.pos.y };
+        st.samples = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
+        st.vel = { x: 0, y: 0 };
+        st.angVel = 0;
+        setShowLabel(false);
+        st.drawVariant("lit");
+        st.wake();
+      }
+      return;
+    }
     const now = performance.now();
     st.samples.push({ x: e.clientX, y: e.clientY, t: now });
     if (st.samples.length > 6) st.samples.shift();
@@ -358,6 +413,7 @@ export default function CubeToy() {
 
   const onUp = () => {
     const st = s.current;
+    st.canCatch = false;
     if (!st.held) return;
     st.held = false;
     st.vel = sampleVelocity();
