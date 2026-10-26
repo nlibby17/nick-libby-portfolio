@@ -1,18 +1,22 @@
-import CupCanvas from "./CupCanvas";
-import DiscCanvas from "./DiscCanvas.jsx";
+import OrbitRing from "./OrbitRing.jsx";
 
 /*
   Hero order per Nick's direction (Oct 25, 2026): ornament,
   role, tagline with only its bottom decorator, Projects /
-  Contact / About buttons, then the cup directly above the
-  featured project card. The giant NICK LIBBY hero header was
-  removed by Nick's call the same day: the site title and the
-  nav brand already carry his name. The old SVG sunburst
-  behind the hero is retired: the homepage backdrop is now a
-  fixed ASCII sunburst (App-level AsciiField, variant "sun")
-  that stays put wherever you scroll.
-  The cup is still the stand-in ASCII; the converted photoreal
-  cup replaces it once Nick's specifications land.
+  Contact / About buttons, then the visual assembly directly
+  above the featured project card. The giant NICK LIBBY hero
+  header was removed by Nick's call the same day: the site
+  title and the nav brand already carry his name. The old
+  SVG sunburst behind the hero is retired: the homepage
+  backdrop is now a fixed ASCII sunburst (App-level
+  AsciiField, variant "sun") that stays put wherever you
+  scroll.
+
+  The visual assembly is the orbit ring (Oct 26, 2026): the
+  project icons travel a tilted ellipse over the sun, each
+  with its particle halo, driven by lib/iconRegistry.js.
+  It replaces the lone spinning cup and its disc, which
+  served as the hero from Stage 2 until the ring landed.
 */
 export default function Hero({ onNavigate }) {
   const scrollTo = (id) => (e) => {
@@ -48,13 +52,11 @@ export default function Hero({ onNavigate }) {
         </a>
       </div>
       <div
-        className="cup-stage"
+        className="orbit-stage"
         role="img"
-        aria-label="ASCII art of an iced coffee cup, tilted, with a straw"
+        aria-label="Project icons in orbit: the Dunkin' coffee cup and the Stock App's crossed swords, circling with particle halos"
       >
-        <DiscCanvas half="back" />
-        <CupCanvas />
-        <DiscCanvas half="front" />
+        <OrbitRing />
       </div>
     </header>
   );

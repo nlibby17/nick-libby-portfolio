@@ -1071,3 +1071,22 @@ body {
   left: 50%;
   transform: translateX(-50%);
 }
+
+/* OrbitRing hero stage (v3.50) */
+.orbit-stage {
+  position: relative;
+  width: min(900px, 94vw);
+  height: 500px;
+  margin: 4.6rem auto 0.2rem;
+}
+.orbit-fill {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+@media (max-width: 760px) {
+  .orbit-stage {
+    height: 340px;
+    margin-top: 3.4rem;
+  }
+}
