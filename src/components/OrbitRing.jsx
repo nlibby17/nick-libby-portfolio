@@ -299,7 +299,7 @@ export default function OrbitRing() {
       const placed = icons.map((icon, i) => {
         const th = (i * Math.PI * 2) / icons.length - (t * Math.PI * 2) / ORBIT_PERIOD_S;
         const depth = (Math.sin(th) + 1) / 2;
-        const scaleF = (0.58 + 0.52 * depth) * fit;
+        const scaleF = (0.58 + 0.52 * depth) * fit * (icon.entry.scale ?? 1);
         // fit the icon into a stage-relative box, aspect kept
         const boxW = 290 * scaleF;
         const boxH = 262 * scaleF;
