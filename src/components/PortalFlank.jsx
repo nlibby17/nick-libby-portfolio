@@ -22,9 +22,27 @@ import { glyphSprite } from "../lib/glyphAtlas.js";
   swirl), sparks ride the rim ellipse, and embers shed
   off the rim, drift outward, and fade. The blue ring
   turns clockwise and the orange counterclockwise, so the
-  tops of both travel toward the content column. All of
-  it stamps pre-rendered glyph sprites, the same cheap
-  machinery as the homepage halos.
+  tops of both travel toward the content column.
+
+  Performance pass (Oct 26, 2026, after Nick hit lag on
+  the live page): the first build fed the glyph atlas a
+  fresh shade for nearly every stamp, because the wave
+  and spark brightness were continuous values, so the
+  sprite cache churned thousands of tiny canvases and the
+  main thread blocked for over half of a six second
+  probe. The fixes, in order of impact:
+  - Every stamped shade now comes off a short fixed
+    ladder of levels, so the atlas reaches a small steady
+    working set and then only ever hits.
+  - The wave is evaluated per angle bucket (72 buckets)
+    instead of per cell, and crest glyphs glow in the
+    portal tint rather than each cell's own color.
+  - The whole effect draws at 15 fps. A slow swirl reads
+    the same and the per second cost drops fourfold
+    against the 60 fps loop it started in.
+  - Spark and ember counts trimmed (64 and 16 a side),
+    and the canvas device pixel ratio is capped at 1.5,
+    plenty for backdrop art.
 
   The flanks need real margins: below a viewport width
   that leaves under 120 px beside the 72 rem content
@@ -35,6 +53,10 @@ const BAKE_U = 9;
 const CONTENT_W = 1152; // the site's --page-width, 72 rem
 const SPARK_CHARS = "·:+*x%";
 const WAVE_SPEED = 1.15; // radians per second
+const FRAME_MS = 1000 / 15;
+const ANGLE_BUCKETS = 72;
+const WAVE_LEVELS = 6;
+const SPARK_LEVELS = 8;
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -74,24 +96,28 @@ function bakeGrid(grid) {
 function buildPortal(grid, tint, dir, seed) {
   const rng = mulberry32(seed);
   const baked = bakeGrid(grid);
-  const cells = [];
+  // ring cells grouped into angle buckets around the
+  // center, so the swirl wave prices 72 buckets a frame
+  // instead of every cell
+  const buckets = Array.from({ length: ANGLE_BUCKETS }, () => []);
   for (let y = 0; y < grid.rows; y++) {
     for (let x = 0; x < grid.cols; x++) {
       const ci = grid.cells[y][x];
       if (ci < 0) continue;
       const dx = (x + 0.5 - grid.cols / 2) * CELL_ASPECT;
       const dy = y + 0.5 - grid.rows / 2;
-      cells.push({
-        x,
-        y,
-        ch: grid.lines[y][x],
-        color: grid.palette[ci],
-        ang: Math.atan2(dy, dx),
-      });
+      const ang = Math.atan2(dy, dx);
+      const bi =
+        Math.floor(((ang + Math.PI) / (Math.PI * 2)) * ANGLE_BUCKETS) %
+        ANGLE_BUCKETS;
+      buckets[bi].push({ x, y, ch: grid.lines[y][x] });
     }
   }
+  const bucketAngles = buckets.map(
+    (_, i) => -Math.PI + ((i + 0.5) / ANGLE_BUCKETS) * Math.PI * 2,
+  );
   const sparks = [];
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 64; i++) {
     sparks.push({
       a0: rng() * Math.PI * 2,
       rr: 0.93 + 0.14 * rng(),
@@ -101,7 +127,7 @@ function buildPortal(grid, tint, dir, seed) {
     });
   }
   const embers = [];
-  for (let i = 0; i < 22; i++) {
+  for (let i = 0; i < 16; i++) {
     embers.push({
       ang: rng() * Math.PI * 2,
       rad: 0.99 + 0.1 * rng(),
@@ -116,7 +142,8 @@ function buildPortal(grid, tint, dir, seed) {
     grid,
     baked,
     aspect: baked.width / baked.height,
-    cells,
+    buckets,
+    bucketAngles,
     sparks,
     embers,
     tint,
@@ -129,6 +156,8 @@ const smooth = (a, b, x) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
 };
+
+const ladder = (v, levels) => Math.round(v * levels) / levels;
 
 export default function PortalFlank() {
   const ref = useRef(null);
@@ -174,7 +203,9 @@ export default function PortalFlank() {
           if ((sa < 0) !== back) continue;
           const x = cx + Math.cos(a) * rx * s.rr;
           const y = cy + sa * ry * s.rr;
-          const f = 0.35 + 0.65 * ((sa + 1) / 2);
+          // brightness off the fixed ladder, so the atlas
+          // only ever holds a handful of spark shades
+          const f = ladder(0.35 + 0.65 * ((sa + 1) / 2), SPARK_LEVELS);
           stamp(
             s.ch,
             shade(p.tint, f * 1.15),
@@ -196,25 +227,33 @@ export default function PortalFlank() {
       if (still) return;
 
       // the swirl: a brightness wave circulating the rim,
-      // with a fainter second crest half a lap behind it
+      // priced per angle bucket, crest glyphs glowing in
+      // the portal tint off the fixed level ladder, with a
+      // fainter second crest half a lap behind
       const phase = p.dir * t * WAVE_SPEED;
-      for (const cell of p.cells) {
-        const c1 = Math.cos(cell.ang - phase);
-        const c2 = Math.cos(cell.ang - phase + Math.PI);
-        const inten = Math.max(
+      for (let bi = 0; bi < ANGLE_BUCKETS; bi++) {
+        const cells = p.buckets[bi];
+        if (!cells.length) continue;
+        const c1 = Math.cos(p.bucketAngles[bi] - phase);
+        const c2 = Math.cos(p.bucketAngles[bi] - phase + Math.PI);
+        const raw = Math.max(
           smooth(0.72, 1, c1),
           0.5 * smooth(0.78, 1, c2),
         );
-        if (inten < 0.03) continue;
-        stamp(
-          cell.ch,
-          shade(cell.color, 1 + 0.9 * inten),
-          cellH * 1.02,
-          false,
-          x0 + (cell.x + 0.5) * cellW,
-          y0 + (cell.y + 0.5) * cellH,
-          0.8 * inten,
-        );
+        const inten = ladder(raw, WAVE_LEVELS);
+        if (inten < 0.05) continue;
+        const color = shade(p.tint, 0.55 + 0.85 * inten);
+        for (const cell of cells) {
+          stamp(
+            cell.ch,
+            color,
+            cellH * 1.02,
+            false,
+            x0 + (cell.x + 0.5) * cellW,
+            y0 + (cell.y + 0.5) * cellH,
+            0.8 * inten,
+          );
+        }
       }
 
       // embers shed off the rim and fade as they drift out
@@ -247,7 +286,7 @@ export default function PortalFlank() {
       const W = stage.clientWidth;
       const H = stage.clientHeight;
       if (!W || !H) return;
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const dpr = Math.min(1.5, window.devicePixelRatio || 1);
       if (canvas.width !== Math.round(W * dpr)) {
         canvas.width = Math.round(W * dpr);
         canvas.height = Math.round(H * dpr);
@@ -277,13 +316,13 @@ export default function PortalFlank() {
     if (reduced) {
       draw(0, 0, true);
     } else {
-      let last = performance.now();
-      let tick = 0;
+      let lastDraw = performance.now();
       const loop = (now) => {
-        const dt = Math.min(0.05, (now - last) / 1000);
-        last = now;
-        tick += 1;
-        if (tick % 2 === 0) draw(now / 1000, dt * 2, false);
+        if (now - lastDraw >= FRAME_MS) {
+          const dt = Math.min(0.12, (now - lastDraw) / 1000);
+          lastDraw = now;
+          draw(now / 1000, dt, false);
+        }
         raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame(loop);
