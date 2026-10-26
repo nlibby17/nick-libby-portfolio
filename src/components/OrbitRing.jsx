@@ -32,6 +32,11 @@ import { glyphSprite } from "../lib/glyphAtlas.js";
     project's splash color. The math stays deliberately
     simple: constant speeds, no Kepler terms, no Doppler,
     sprites pre-rendered once and stamped without rotation.
+    Structure pass (Oct 26, 2026): two bands per halo (the
+    main band plus a tighter, steeper, quicker inner one),
+    five bright tracers riding the main band, a wider
+    front/back brightness split, and a fence that keeps
+    particles out of the label strip under each icon.
     The heavyweight disc port (the sun field itself, with
     its per-particle transforms) looked right and lagged
     the page, so it was retired to the older commits by
@@ -139,12 +144,33 @@ function buildHalo(entry) {
   const rng = mulberry32(entry.seed);
   const out = [];
   for (let i = 0; i < HALO_COUNT; i++) {
+    // two bands (Nick, Oct 26, 2026, from the outside
+    // critique's one point that landed): the main band as
+    // before, plus a tighter, steeper, quicker inner band,
+    // so the eye gets two clean orbital lines to follow
+    // instead of one loose cloud
+    const inner = rng() < 0.32;
     out.push({
-      rr: 0.8 + 0.5 * Math.pow(rng(), 1.35),
+      rr: inner ? 0.62 + 0.16 * rng() : 0.8 + 0.5 * Math.pow(rng(), 1.35),
+      squash: inner ? 0.6 : HALO_SQUASH,
       a0: rng() * Math.PI * 2,
-      speed: 0.3 + 0.35 * rng(),
+      speed: (inner ? 0.5 : 0.3) + 0.35 * rng(),
       ch: HALO_CHARS[(rng() * HALO_CHARS.length) | 0],
       big: rng() < 0.4,
+      tracer: false,
+    });
+  }
+  // a few bright tracers on the main band: their travel
+  // shows the orbit's direction at a glance
+  for (let i = 0; i < 5; i++) {
+    out.push({
+      rr: 0.92 + 0.1 * rng(),
+      squash: HALO_SQUASH,
+      a0: (i / 5) * Math.PI * 2 + rng() * 0.5,
+      speed: 0.55 + 0.1 * rng(),
+      ch: "%",
+      big: true,
+      tracer: true,
     });
   }
   return out;
@@ -179,13 +205,18 @@ export default function OrbitRing() {
       const x0 = cx - dispW / 2;
       const y0 = cy - dispH / 2;
       const drawHaloHalf = (back) => {
-        ctx.globalAlpha = (0.4 + 0.6 * depth) * (back ? 0.85 : 1);
+        ctx.globalAlpha = (0.4 + 0.6 * depth) * (back ? 0.7 : 1);
         for (const p of icon.halo) {
           const a = p.a0 + p.speed * t;
           const sa = Math.sin(a);
           if ((sa < 0) !== back) continue;
           const x = cx + Math.cos(a) * p.rr * sphereR;
-          const y = cy + sa * p.rr * sphereR * HALO_SQUASH;
+          const y = cy + sa * p.rr * sphereR * p.squash;
+          // label fence: no particles in the strip where
+          // the project name rides, so it stays readable
+          if (y > cy + dispH / 2 + 6 && Math.abs(x - cx) < dispW * 0.62) {
+            continue;
+          }
           // occlusion against the icon's own hit grid
           const gx = Math.floor((x - x0) / cellW);
           const gy = Math.floor((y - y0) / cellH);
@@ -206,8 +237,12 @@ export default function OrbitRing() {
             if (near && back) continue;
           }
           const ca = Math.cos(a);
-          const shadeF = ca > 0.3 ? 1.05 : ca < -0.3 ? 0.5 : 0.78;
-          const u = (p.big ? 9.5 : 6.5) * Math.max(0.45, fitScale);
+          // stronger front/back contrast than the first
+          // build, so the pass-around reads in a still frame
+          let shadeF = ca > 0.3 ? 1.15 : ca < -0.3 ? 0.32 : 0.7;
+          if (p.tracer) shadeF = ca > 0 ? 1.35 : 0.75;
+          const u =
+            (p.tracer ? 12 : p.big ? 9.5 : 6.5) * Math.max(0.45, fitScale);
           const sp = glyphSprite(p.ch, shade(entry.haloTint, shadeF), u, p.big);
           ctx.drawImage(
             sp,
