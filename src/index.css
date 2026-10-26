@@ -773,6 +773,10 @@ body {
   margin-right: auto;
 }
 
+.project-page section h2 {
+  text-transform: uppercase;
+}
+
 .project-page .stat-row {
   justify-content: center;
 }
