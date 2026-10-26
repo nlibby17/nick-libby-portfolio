@@ -1,5 +1,6 @@
 import VideoEmbed from "../components/VideoEmbed.jsx";
 import SprinkleField from "../components/SprinkleField.jsx";
+import CandleField from "../components/CandleField.jsx";
 import AsciiPipe from "../components/AsciiPipe.jsx";
 
 /*
@@ -71,6 +72,11 @@ export default function ProjectPage({ project, onNavigate }) {
       {project.backdrop === "sprinkles" && (
         <div className="project-bg" aria-hidden="true">
           <SprinkleField />
+        </div>
+      )}
+      {project.backdrop === "candles" && (
+        <div className="project-bg project-bg--candles" aria-hidden="true">
+          <CandleField />
         </div>
       )}
       <div className="project-content">

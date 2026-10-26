@@ -73,6 +73,7 @@ export const projects = [
     title: "Stock Research Assistant",
     cardType: "tool",
     splash: "var(--splash-stock)",
+    backdrop: "candles",
     featured: false,
     tagline:
       "A local stock screener that ranks a customizable U.S. universe on five factors, with a scoring model you can read.",
