@@ -944,61 +944,11 @@ body {
   margin: 0.7rem auto;
 }
 
+/* The pipes are converted image art on small canvases
+   (AsciiPipe). Centering only; the glyphs carry the paint. */
 .ascii-pipe {
-  margin: 0;
-  width: fit-content;
-  font-family: "Courier New", Courier, monospace;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.25;
-  white-space: pre;
-  color: transparent;
-  background-image:
-    linear-gradient(
-      115deg,
-      transparent 43%,
-      rgba(255, 255, 255, 0.85) 50%,
-      transparent 57%
-    ),
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--splash) 42%, black),
-      var(--splash) 22%,
-      color-mix(in srgb, var(--splash) 55%, white) 34%,
-      var(--splash) 58%,
-      color-mix(in srgb, var(--splash) 42%, black)
-    );
-  background-size:
-    260% 260%,
-    100% 100%;
-  background-position:
-    110% 110%,
-    0 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  animation: pipe-shine 5s linear infinite;
-}
-
-@keyframes pipe-shine {
-  0% {
-    background-position:
-      110% 110%,
-      0 0;
-  }
-  22% {
-    background-position:
-      -10% -10%,
-      0 0;
-  }
-  100% {
-    background-position:
-      -10% -10%,
-      0 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ascii-pipe {
-    animation: none;
-  }
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
 }

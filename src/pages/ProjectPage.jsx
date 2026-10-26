@@ -40,16 +40,14 @@ export default function ProjectPage({ project, onNavigate }) {
         {project.pipeline.steps.map((step, i) => (
           <div className="pipe-step" key={step.title}>
             <div className="pipe-run" aria-hidden="true">
-              <AsciiPipe
-                direction={i === 0 ? "down" : i % 2 === 1 ? "up" : "down"}
-              />
+              <AsciiPipe variant={i === 0 ? "down" : "double"} />
             </div>
             <h3 className="pipe-title">{step.title}</h3>
             <p>{step.body}</p>
           </div>
         ))}
         <div className="pipe-run pipe-run--end" aria-hidden="true">
-          <AsciiPipe direction="down" />
+          <AsciiPipe variant="double" />
         </div>
       </div>
     </section>
