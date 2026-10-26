@@ -885,6 +885,12 @@ body {
   display: block;
 }
 
+.portal-flank-fill {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
 .candle-stack {
   position: absolute;
   inset: 0;

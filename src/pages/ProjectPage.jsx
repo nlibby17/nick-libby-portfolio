@@ -2,6 +2,7 @@ import VideoEmbed from "../components/VideoEmbed.jsx";
 import StockDemo from "../components/StockDemo.jsx";
 import SprinkleField from "../components/SprinkleField.jsx";
 import CandleField from "../components/CandleField.jsx";
+import PortalFlank from "../components/PortalFlank.jsx";
 import AsciiPipe from "../components/AsciiPipe.jsx";
 
 /*
@@ -73,6 +74,11 @@ export default function ProjectPage({ project, onNavigate }) {
       {project.backdrop === "sprinkles" && (
         <div className="project-bg" aria-hidden="true">
           <SprinkleField />
+        </div>
+      )}
+      {project.backdrop === "portals" && (
+        <div className="project-bg" aria-hidden="true">
+          <PortalFlank />
         </div>
       )}
       {project.backdrop === "candles" && (

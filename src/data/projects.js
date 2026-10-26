@@ -108,28 +108,30 @@ export const projects = [
     title: "Portal x Titanfall Movement Mod",
     cardType: "buildlog",
     splash: "var(--splash-portal)",
+    backdrop: "portals",
     featured: false,
     status: "In progress",
     tagline:
       "Titanfall 2 pilot movement, rebuilt inside Portal's engine: sprinting, sliding, wallrunning, and double jumps in the test chambers.",
     log: [
-      "Design freeze: v1 movement set locked",
-      "Stage 1 in the test build: pilot speeds, gravity, jump",
-      "Next: slide and slide-hop",
+      "Stage 1 verified: pilot speeds, gravity, jump",
+      "Stage 2 verified: slide and slide-hop",
+      "Stage 3 verified: wallrunning and double jump",
+      "Now: tuning in a custom movement lab",
     ],
-    lede: "A for-fun build run like a real project. Design is frozen. The build is under way.",
+    lede: "A for-fun build run like a real project. The full v1 movement set is in the test build, and the tuning pass is under way.",
     sections: [
       {
         heading: "Status",
-        body: "In progress. Weeks went into learning how Titanfall's movement is tuned and designing the rebuild before code was written. Stage 1, the base movement retune, is implemented in a test build. The slide is next.",
+        body: "In progress. All three stages of the v1 movement set are implemented in a test build, and each one passed instrumented in-engine checks as it landed: base pilot movement, slide and slide-hop, then wallrunning and double jump. The work left is tuning and edge-case verification, run in a purpose-built movement lab map.",
       },
       {
         heading: "The movement set",
-        body: "Sprint at pilot speed, a slide that rewards momentum and chains into slide-hops, wallrunning on chamber walls, and a double jump. Grapple and Titan content are out of scope by design.",
+        body: "Titanfall pilot movement rebuilt on Portal's Source engine base, with tuning values extracted from Titanfall 2's own game files. Sprint at 260 with diagonals included, a momentum slide that boosts toward a 400 cap and chains into slide-hops, wallrunning capped at 420, a wall jump that hands back the double-jump charge, and a double jump at the same impulse as the ground jump. Grapple and Titan content stay out of scope by design.",
       },
       {
         heading: "Build log",
-        body: "Oct 24, 2026: design freeze. The v1 movement set and tuning targets were locked, including slide boost behavior and slide-hop as the first tuning priority. Oct 24, 2026: Stage 1 implemented in the test build, with Titanfall stand, sprint, and crouch speeds, gravity at pilot scale, and jump height to match. Instrumented speed checks are still to run. Later stages follow in order.",
+        body: "Oct 24, 2026: design freeze, with Stage 1 implemented the same night. Oct 25: Stage 1 and Stage 2 verified in engine, stand 173.5, sprint 260, crouch 80, slide entry at 200 and above. Oct 26: Stage 3 verified, wallrunning and double jump live in the test build, a custom movement lab compiled for playtesting, and a wall-stall bug found in testing fixed the same day. Still open: the full 1.75 second wallrun timeout check, wall trace edge cases, and the final tuning pass.",
       },
     ],
   },
