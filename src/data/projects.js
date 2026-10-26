@@ -56,7 +56,7 @@ export const projects = [
     sections: [
       {
         heading: "The route",
-        body: "The finished tour runs 2,356.9 miles and 86.1 driving hours across 1,019 stops. The map and the numbers above are the project; everything else here is just how they were earned.",
+        body: "The finished tour runs 2,356.9 miles and 86.1 driving hours across 1,019 stops. The map and the numbers above are the project. Everything else here is just how they were earned.",
       },
       {
         heading: "Code",
@@ -79,7 +79,7 @@ export const projects = [
     tagline:
       "A local stock screener that ranks a customizable U.S. universe on five factors, with a scoring model you can read.",
     factors: ["Growth", "Valuation", "Quality", "Momentum", "Risk"],
-    lede: "A research-only screener and ranker. It runs locally, shows its work, and places no trades.",
+    lede: "A research-only screener and ranker that runs locally and updates weekly.",
     sections: [
       {
         heading: "What it does",
@@ -87,11 +87,11 @@ export const projects = [
       },
       {
         heading: "The dashboard",
-        body: "The demo above mirrors the app's Home view with the candidate table and the sector snapshot. The full app opens results in a React dashboard with five views: Home, Top Candidates, Stock Comparison, Research, and Advanced. Reports are stored in local SQLite history, so results stay reproducible and comparable over time, and any ranking can be downloaded as a CSV.",
+        body: "The demo above is the app's Stock Comparison view, lifted from the real frontend and running on the app's own demo data. The full app opens results in a React dashboard with five views: Home, Top Candidates, Stock Comparison, Research, and Advanced. Reports are stored in local SQLite history, so results stay reproducible and comparable over time, and any ranking can be downloaded as a CSV.",
       },
       {
         heading: "Under the hood",
-        body: "Python throughout. Yahoo Finance supplies prices and screening fundamentals; SEC EDGAR supplies official company identity, filings, and Company Facts data. Missing or stale values stay visible instead of being filled in.",
+        body: "Python throughout. Yahoo Finance supplies prices and screening fundamentals. SEC EDGAR supplies official company identity, filings, and Company Facts data. Missing or stale values stay visible instead of being filled in.",
       },
       {
         heading: "Code",
@@ -117,11 +117,11 @@ export const projects = [
       "Stage 1 in the test build: pilot speeds, gravity, jump",
       "Next: slide and slide-hop",
     ],
-    lede: "A for-fun build run like a real project. Design is frozen; the build is under way.",
+    lede: "A for-fun build run like a real project. Design is frozen. The build is under way.",
     sections: [
       {
         heading: "Status",
-        body: "In progress. Weeks went into learning how Titanfall's movement is tuned and designing the rebuild before code was written. Stage 1, the base movement retune, is implemented in a test build; the slide is next.",
+        body: "In progress. Weeks went into learning how Titanfall's movement is tuned and designing the rebuild before code was written. Stage 1, the base movement retune, is implemented in a test build. The slide is next.",
       },
       {
         heading: "The movement set",
@@ -129,7 +129,7 @@ export const projects = [
       },
       {
         heading: "Build log",
-        body: "Oct 24, 2026: design freeze. The v1 movement set and tuning targets were locked, including slide boost behavior and slide-hop as the first tuning priority. Oct 24, 2026: Stage 1 implemented in the test build, with Titanfall stand, sprint, and crouch speeds, gravity at pilot scale, and jump height to match. Instrumented speed checks are still to run; later stages follow in order.",
+        body: "Oct 24, 2026: design freeze. The v1 movement set and tuning targets were locked, including slide boost behavior and slide-hop as the first tuning priority. Oct 24, 2026: Stage 1 implemented in the test build, with Titanfall stand, sprint, and crouch speeds, gravity at pilot scale, and jump height to match. Instrumented speed checks are still to run. Later stages follow in order.",
       },
     ],
   },

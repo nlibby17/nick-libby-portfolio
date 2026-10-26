@@ -19,7 +19,7 @@ import { bucket } from "../lib/glyphAtlas.js";
     whole field diagonally over about two and a half seconds, cells
     brightening as the front passes over them, then still
     again. Brightening is a brighter glyph stamped over the
-    base copy; nothing is erased, so nothing can artifact.
+    base copy. Nothing is erased, so nothing can artifact.
   - The mouse deformation Nick kept: a seeded tenth of the
     cells ride springs around the pointer, pushed out and
     lit, overshooting home when it leaves. A displaced cell

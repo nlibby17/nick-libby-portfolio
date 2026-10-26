@@ -17,7 +17,7 @@ import ErrorBoundary from "../components/ErrorBoundary.jsx";
 */
 export default function AboutPage() {
   // The settled desktop field brightness reads very dim
-  // on a phone; small screens get the field nearly full
+  // on a phone, and small screens get the field nearly full
   // strength (Nick's iPhone catch, Oct 25, 2026).
   const fieldOpacity =
     typeof window !== "undefined" &&
@@ -54,10 +54,10 @@ export default function AboutPage() {
                 Recent projects include a recreation of every Dunkin'
                 location in Massachusetts, built from multiple location
                 data sources and resolved into a single route of 1,019
-                stops and 2,356.9 miles; a stock research assistant that
-                screens and ranks tickers; and a Portal mod, in progress,
-                that rebuilds Titanfall-style movement inside Portal's
-                engine.
+                stops and 2,356.9 miles. There is also a stock research
+                assistant that screens and ranks tickers, and a Portal
+                mod, in progress, that rebuilds Titanfall-style movement
+                inside Portal's engine.
               </p>
               <p>
                 I am also working on a project using World Values Survey

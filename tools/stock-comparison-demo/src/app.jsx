@@ -674,7 +674,7 @@ function Home({ data, navigate }) {
           <Notice>No sectors have sufficient stored evidence.</Notice>
         )}
         <p className="muted small">
-          Median three-month stock return within this selected universe; sectors
+          Median three-month stock return within this selected universe. Sectors
           need at least three usable companies. This is not a whole-market
           sector ranking.
         </p>
@@ -914,14 +914,13 @@ function Comparison({ data }) {
       </div>
       <p className="muted small">
         Report {data.run.as_of} · {data.run.provider} · model{" "}
-        {data.run.model_version}. Scores are relative to this report’s universe;
-        coverage shows available evidence.
+        {data.run.model_version}. Scores are relative to this report’s universe.
+        Coverage shows available evidence.
       </p>
       <div className="tabs" role="tablist" aria-label="Comparison details">
         {[
           ["scores", "Score profile"],
           ["metrics", "Key metrics"],
-          ["research", "Research & sources"],
         ].map(([id, title]) => (
           <button
             role="tab"
@@ -949,39 +948,12 @@ function Comparison({ data }) {
               summary: componentSummary(f, data.scoring),
             }))}
           />
-          <Disclosure title="Coverage" className="gold-panel">
-            <div className="comparison-table">
-              <DataTable
-                className="gold-panel"
-                rows={factors.map((f) => ({
-                  factorKey: f,
-                  factor: label(f),
-                  left: pair[0].component_coverage[f],
-                  right: pair[1].component_coverage[f],
-                }))}
-                columns={[
-                  {
-                    key: "factor",
-                    title: "Coverage",
-                    help: (row) => componentHelp(row.factorKey, data.scoring),
-                  },
-                  {
-                    key: "left",
-                    title: pair[0].ticker,
-                    render: (r) => percent(r.left, 0),
-                  },
-                  {
-                    key: "right",
-                    title: pair[1].ticker,
-                    render: (r) => percent(r.right, 0),
-                  },
-                ]}
-              />
-            </div>
-          </Disclosure>
+          {/* Demo window: the Coverage disclosure table is
+              removed (README, patch 6). Coverage still shows in
+              the arena and on the bars. */}
           <p className="muted small">
             Higher risk scores mean a more favorable risk profile. Missing
-            scores have no bar; unavailable values are not zero.
+            scores have no bar. Unavailable values are not zero.
           </p>
         </>
       )}
@@ -1028,17 +1000,9 @@ function Comparison({ data }) {
           )}
         </>
       )}
-      {tab === "research" && (
-        <div className="two-column">
-          {pair.map((r) => (
-            <section key={r.ticker}>
-              <h2>{r.ticker}</h2>
-              <ResearchText note={notes[r.ticker]} />
-              <SourceLinks sources={notes[r.ticker]?.sources} />
-            </section>
-          ))}
-        </div>
-      )}
+      {/* Demo window: the Research & sources tab is removed
+          (README, patch 7). The demo run has no research
+          notes, so the tab showed only empty states. */}
     </>
   );
 }
@@ -1579,11 +1543,9 @@ function App() {
           </>
         ) : (
           <>
-            {data.run.provider === "demo-synthetic" && (
-              <Notice tone="warning">
-                SYNTHETIC DEMO DATA — do not use for investment decisions
-              </Notice>
-            )}
+            {/* Demo window: the banner and warnings notices are
+                removed (README, patch 5). Demo data is disclosed
+                on the portfolio page around the window. */}
             {data.configuration_mismatches.length > 0 && (
               <Notice>
                 Saved report notice: active configuration differs (
@@ -1597,17 +1559,7 @@ function App() {
                 {data.reproducibility_reasons.join("; ")}
               </Notice>
             )}
-            {data.warnings.length > 0 && (
-              <Notice tone="warning">
-                {data.warnings.length} data-quality warnings recorded.{" "}
-                <button
-                  className="text-button"
-                  onClick={() => navigate("advanced")}
-                >
-                  Review in Advanced →
-                </button>
-              </Notice>
-            )}
+            {/* (warnings notice removed with patch 5) */}
             <div className="page" key={page}>
               {/* Demo window: locked to the Comparison view. */}
               <Comparison data={data} />

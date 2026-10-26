@@ -21,7 +21,7 @@ exported unedited (see `export-report.py`).
 
 1. **Data source.** `fetch("/api/report", ...)` becomes
    `fetch("report.json", ...)`. On a static site there is
-   no backend; the baked payload is the same JSON the
+   no backend. The baked payload is the same JSON the
    endpoint returns. This is the app's demo-mode data,
    synthetic and labeled as such by the app itself.
 2. **Start page.** The initial page state is `"comparison"`
@@ -31,6 +31,20 @@ exported unedited (see `export-report.py`).
 4. **Page locked.** The view switch renders `<Comparison>`
    unconditionally, so nothing inside the window can
    navigate to Home, Top Candidates, Research, or Advanced.
+5. **Top notices removed.** The synthetic-data banner and
+   the data-quality warnings notice are not rendered. Demo
+   data is disclosed on the portfolio page around the
+   window instead. This also removes the warnings notice's
+   "Review in Advanced" button.
+6. **Coverage disclosure removed.** The collapsible
+   Coverage table under the score bars is not rendered.
+   Coverage still shows in the arena and on the bars.
+7. **Research & sources tab removed.** The demo run has no
+   research notes, so the tab showed only empty states.
+8. **Semicolon pass.** Prose semicolons in the view's
+   visible text were replaced with periods, per the site's
+   no-semicolons rule. The metric help strings in
+   `scoring-help.mjs` got the same pass.
 
 Host-page adaptation (in the generated `index.html`, not in
 the app's files): with the rail gone, `main`'s left padding
@@ -38,13 +52,10 @@ drops from 124px to a symmetric 44px, with a mobile variant.
 
 ## Known inert or empty spots
 
-- The data-quality warnings notice carries the app's
-  "Review in Advanced" button. Advanced is outside this
-  window's scope, so the button is inert.
-- The Comparison view's Research & sources tab reads the
-  run's research notes. The demo run has none, so the tab
-  shows the app's own empty state for each stock. Nothing
-  was removed; the demo data simply has no notes.
+- None known after patches 5 to 7. The spots that were
+  inert or empty in the first build (the Advanced button,
+  the research tab) were removed outright in the editing
+  pass rather than left in place.
 
 ## Rebuild
 

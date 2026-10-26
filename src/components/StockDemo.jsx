@@ -12,7 +12,7 @@
 */
 export default function StockDemo() {
   return (
-    <section className="demo" aria-label="Stock Research Assistant live demo">
+    <section className="demo demo-wide" aria-label="Stock Research Assistant live demo">
       <h2>Live demo</h2>
       <p>
         The Stock Comparison view from the actual app, running below with its
@@ -28,7 +28,7 @@ export default function StockDemo() {
           <span className="demo-chrome-title">
             Stock Research Assistant · Stock Comparison
           </span>
-          <span className="demo-chrome-tag">the real app · demo data</span>
+          <span className="demo-chrome-tag">real app · demo data</span>
         </div>
         <iframe
           className="demo-frame"

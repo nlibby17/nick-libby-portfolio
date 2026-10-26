@@ -49,7 +49,7 @@ await writeFile(
 <title>Stock Research Assistant — Stock Comparison (demo)</title>
 <link rel="stylesheet" href="app.css">
 <style>
-  /* Demo window adaptations (host page only; the app's own
+  /* Demo window adaptations (host page only. The app's own
      stylesheets are unmodified): with the side navigation
      removed, main no longer needs the 124px rail offset. */
   main { padding-left: 44px; }

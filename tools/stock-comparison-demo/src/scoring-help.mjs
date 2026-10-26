@@ -2,31 +2,31 @@ import { label } from "./format.mjs";
 
 export const metricExplanations = {
   revenue_growth:
-    "Revenue growth = revenue change ÷ prior revenue. Yahoo-reported growth; comparison period dates are not supplied.",
+    "Revenue growth = revenue change ÷ prior revenue. Yahoo-reported growth. Comparison period dates are not supplied.",
   earnings_growth:
-    "Earnings growth = earnings change ÷ prior earnings. Yahoo-reported growth; comparison period dates are not supplied.",
+    "Earnings growth = earnings change ÷ prior earnings. Yahoo-reported growth. Comparison period dates are not supplied.",
   free_cash_flow_margin:
-    "Free cash flow margin = free cash flow ÷ revenue. Uses Yahoo's latest reported totals; period dates are not supplied.",
+    "Free cash flow margin = free cash flow ÷ revenue. Uses Yahoo's latest reported totals. Period dates are not supplied.",
   forward_pe:
-    "Forward P/E = price ÷ forecast earnings per share. Yahoo's forward estimate; forecast period dates are not supplied.",
+    "Forward P/E = price ÷ forecast earnings per share. Yahoo's forward estimate. Forecast period dates are not supplied.",
   trailing_pe:
-    "Trailing P/E = price ÷ trailing earnings per share. Yahoo's trailing ratio; period dates are not supplied.",
+    "Trailing P/E = price ÷ trailing earnings per share. Yahoo's trailing ratio. Period dates are not supplied.",
   peg_ratio:
-    "PEG = P/E ÷ expected earnings-growth rate (in percent). Yahoo's estimate; forecast horizon is not supplied.",
+    "PEG = P/E ÷ expected earnings-growth rate (in percent). Yahoo's estimate. Forecast horizon is not supplied.",
   price_to_sales:
     "Price/sales = market value ÷ trailing 12-month revenue. Yahoo-reported ratio.",
   free_cash_flow_yield:
-    "Free cash flow yield = reported free cash flow ÷ market value. Latest Yahoo totals; cash-flow period dates are not supplied.",
+    "Free cash flow yield = reported free cash flow ÷ market value. Latest Yahoo totals. Cash-flow period dates are not supplied.",
   return_on_equity:
-    "Return on equity = net income ÷ equity. Yahoo-reported ratio; period and averaging dates are not supplied.",
+    "Return on equity = net income ÷ equity. Yahoo-reported ratio. Period and averaging dates are not supplied.",
   profit_margin:
-    "Profit margin = net income ÷ revenue. Yahoo-reported ratio; period dates are not supplied.",
+    "Profit margin = net income ÷ revenue. Yahoo-reported ratio. Period dates are not supplied.",
   gross_margin:
-    "Gross margin = gross profit ÷ revenue. Yahoo-reported ratio; period dates are not supplied.",
+    "Gross margin = gross profit ÷ revenue. Yahoo-reported ratio. Period dates are not supplied.",
   debt_to_equity:
-    "Debt/equity = total debt ÷ equity × 100. Yahoo percentage-point ratio; latest reported balance sheet, date not supplied.",
+    "Debt/equity = total debt ÷ equity × 100. Yahoo percentage-point ratio. Latest reported balance sheet, date not supplied.",
   current_ratio:
-    "Current ratio = current assets ÷ current liabilities. Latest Yahoo-reported balance sheet; date not supplied.",
+    "Current ratio = current assets ÷ current liabilities. Latest Yahoo-reported balance sheet. Date not supplied.",
   momentum_1m:
     "1-month momentum = latest adjusted close ÷ adjusted close 21 trading sessions ago − 1.",
   momentum_3m:
@@ -40,7 +40,7 @@ export const metricExplanations = {
   max_drawdown_1y:
     "1-year drawdown = worst (adjusted close ÷ running peak − 1). Uses 253 trading-session prices (252 intervals).",
   market_cap:
-    "Market value = price × shares outstanding. Latest Yahoo-reported value; timestamp not supplied.",
+    "Market value = price × shares outstanding. Latest Yahoo-reported value. Timestamp not supplied.",
 };
 
 export function componentHelp(component, scoring = {}) {
@@ -58,7 +58,7 @@ export function componentHelp(component, scoring = {}) {
   );
   return (
     `${label(component)} score = (${formula}) ÷ sum of available metric weights.\n` +
-    "Each percentile compares this report's stocks on a 0–100 scale; tied values share a rank. Lower-is-better metrics are reversed. Missing metrics are omitted.\n" +
+    "Each percentile compares this report's stocks on a 0–100 scale. Tied values share a rank. Lower-is-better metrics are reversed. Missing metrics are omitted.\n" +
     definitions.join("\n")
   );
 }
@@ -66,7 +66,7 @@ export function componentHelp(component, scoring = {}) {
 export function modelHelp(scoring = {}) {
   return (
     "Overall score = sum(category score × category weight × coverage) ÷ sum(category weight × coverage).\n" +
-    "Metric percentile = 100 × average zero-based rank ÷ (valid peers − 1); reverse for lower-is-better metrics.\n\n" +
+    "Metric percentile = 100 × average zero-based rank ÷ (valid peers − 1). Reverse for lower-is-better metrics.\n\n" +
     ["growth", "valuation", "quality", "momentum", "risk"]
       .map((key) => componentHelp(key, scoring))
       .join("\n\n")
@@ -79,11 +79,11 @@ export const overallHelp =
 export function componentSummary(component, scoring = {}) {
   const windows = {
     growth:
-      "Yahoo-reported growth and cash flow; comparison dates unavailable.",
+      "Yahoo-reported growth and cash flow. Comparison dates unavailable.",
     valuation:
-      "Latest Yahoo ratios; forecast dates unavailable. Price/sales uses trailing 12 months.",
+      "Latest Yahoo ratios. Forecast dates unavailable. Price/sales uses trailing 12 months.",
     quality:
-      "Latest Yahoo profitability and balance-sheet ratios; period dates unavailable.",
+      "Latest Yahoo profitability and balance-sheet ratios. Period dates unavailable.",
     momentum:
       "Adjusted-price returns over 21, 63, 126 and 252 trading sessions (1, 3, 6 and 12 months).",
     risk: "Volatility: 63 daily returns. Drawdown: 252 trading intervals. Latest market value.",

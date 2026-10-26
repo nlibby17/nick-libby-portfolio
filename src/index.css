@@ -1061,3 +1061,13 @@ body {
   .demo-frame { height: 780px; }
   .demo-chrome-tag { display: none; }
 }
+/* the demo window breaks out of the text column (v3.49):
+   wide enough to breathe on a desktop monitor, and the
+   100vw cap keeps it inside smaller screens */
+.project-page .demo-wide {
+  position: relative;
+  width: min(1240px, calc(100vw - 3rem));
+  max-width: none;
+  left: 50%;
+  transform: translateX(-50%);
+}
