@@ -136,7 +136,15 @@ export default function App() {
     <>
       <Nav onNavigate={navigate} />
       {inner ? (
-        <div className="deco-page-bg">{main}</div>
+        <div
+          className={
+            main.props.project && main.props.project.backdrop
+              ? "deco-page-bg deco-page-bg--plain"
+              : "deco-page-bg"
+          }
+        >
+          {main}
+        </div>
       ) : about ? (
         <div>{main}</div>
       ) : (

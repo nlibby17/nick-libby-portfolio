@@ -40,7 +40,7 @@ export default function VideoEmbed({ videoId, poster, label, posterAlt }) {
       if (dead || player || !mountRef.current) return;
       mountRef.current.innerHTML = "";
       const f = document.createElement("iframe");
-      f.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&playsinline=1`;
+      f.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&playsinline=1&vq=hd1080`;
       f.allow = "autoplay; encrypted-media; picture-in-picture";
       f.allowFullscreen = true;
       f.className = "video-frame";
@@ -53,10 +53,16 @@ export default function VideoEmbed({ videoId, poster, label, posterAlt }) {
         videoId,
         width: "100%",
         height: "100%",
-        playerVars: { autoplay: 1, rel: 0, playsinline: 1 },
+        playerVars: { autoplay: 1, rel: 0, playsinline: 1, vq: "hd1080" },
         events: {
           onReady: (e) => {
             e.target.setVolume(50);
+            try {
+              e.target.setPlaybackQuality("hd1080");
+            } catch {
+              // Quality is a request, not a promise: the
+              // player keeps the final say.
+            }
             e.target.playVideo();
           },
         },

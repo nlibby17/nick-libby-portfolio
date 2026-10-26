@@ -1,6 +1,6 @@
 import VideoEmbed from "../components/VideoEmbed.jsx";
 import SprinkleField from "../components/SprinkleField.jsx";
-import SideCup from "../components/SideCup.jsx";
+import AsciiPipe from "../components/AsciiPipe.jsx";
 
 /*
   ProjectPage: one centered template for every project,
@@ -8,8 +8,8 @@ import SideCup from "../components/SideCup.jsx";
   layer on per project without disturbing the others: a
   video block under the stats, a pipeline of build steps
   rendered between sections (pipelineAfter counts the
-  sections it follows), a named ASCII backdrop field, and
-  the mirrored SideCup pair flanking the top.
+  sections it follows), and a named ASCII backdrop field
+  behind the content.
 */
 export default function ProjectPage({ project, onNavigate }) {
   const renderSection = (section) => (
@@ -39,19 +39,17 @@ export default function ProjectPage({ project, onNavigate }) {
       <div className="pipe-flow">
         {project.pipeline.steps.map((step, i) => (
           <div className="pipe-step" key={step.title}>
-            {i > 0 && (
-              <div className="pipe-run" aria-hidden="true">
-                <div className="pipe-flange" />
-                <div className="pipe-body" />
-              </div>
-            )}
+            <div className="pipe-run" aria-hidden="true">
+              <AsciiPipe
+                direction={i === 0 ? "down" : i % 2 === 1 ? "up" : "down"}
+              />
+            </div>
             <h3 className="pipe-title">{step.title}</h3>
             <p>{step.body}</p>
           </div>
         ))}
         <div className="pipe-run pipe-run--end" aria-hidden="true">
-          <div className="pipe-body" />
-          <div className="pipe-flange" />
+          <AsciiPipe direction="down" />
         </div>
       </div>
     </section>
@@ -76,12 +74,6 @@ export default function ProjectPage({ project, onNavigate }) {
         <div className="project-bg" aria-hidden="true">
           <SprinkleField />
         </div>
-      )}
-      {project.flankCups && (
-        <>
-          <SideCup direction={1} className="side-cup side-cup--left" />
-          <SideCup direction={-1} className="side-cup side-cup--right" />
-        </>
       )}
       <div className="project-content">
         <a

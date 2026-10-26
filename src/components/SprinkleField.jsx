@@ -48,7 +48,7 @@ export default function SprinkleField() {
       const rows = Math.ceil(H / CELL);
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
-          if (rng() > 0.15) continue;
+          if (rng() > 0.225) continue;
           parts.push({
             x: (x + rng()) * CELL,
             y: (y + rng()) * CELL,
@@ -56,7 +56,7 @@ export default function SprinkleField() {
             col: PALETTE[(rng() * PALETTE.length) | 0],
             ph: rng() * Math.PI * 2,
             faller: rng() < 0.16,
-            speed: 7 + rng() * 9,
+            speed: 10.5 + rng() * 13.5,
             sway: rng() * Math.PI * 2,
           });
         }

@@ -840,31 +840,12 @@ body {
   z-index: 1;
 }
 
-.side-cup {
-  position: absolute;
-  top: 120px;
-  width: 180px;
-  aspect-ratio: 582 / 830;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.side-cup--left {
-  left: calc(50% - 780px);
-}
-
-.side-cup--right {
-  left: calc(50% + 600px);
-}
-
-.side-cup-fill {
-  display: block;
-}
-
-@media (max-width: 1620px) {
-  .side-cup {
-    display: none;
-  }
+/* Sections were capped at 68ch with no auto margins, so
+   they hung on the left of the column while the header
+   centered. Center the section box itself. */
+.project-page section {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .video-facade {
@@ -963,60 +944,61 @@ body {
   margin: 0.7rem auto;
 }
 
-.pipe-body {
-  width: 44px;
-  height: 58px;
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--splash) 42%, black),
-    var(--splash) 38%,
-    color-mix(in srgb, var(--splash) 70%, white) 50%,
-    var(--splash) 62%,
-    color-mix(in srgb, var(--splash) 42%, black)
-  );
+.ascii-pipe {
+  margin: 0;
+  width: fit-content;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: pre;
+  color: transparent;
+  background-image:
+    linear-gradient(
+      115deg,
+      transparent 43%,
+      rgba(255, 255, 255, 0.85) 50%,
+      transparent 57%
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--splash) 42%, black),
+      var(--splash) 22%,
+      color-mix(in srgb, var(--splash) 55%, white) 34%,
+      var(--splash) 58%,
+      color-mix(in srgb, var(--splash) 42%, black)
+    );
+  background-size:
+    260% 260%,
+    100% 100%;
+  background-position:
+    110% 110%,
+    0 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: pipe-shine 5s linear infinite;
 }
 
-.pipe-body::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -45%;
-  height: 45%;
-  background: linear-gradient(
-    180deg,
-    transparent,
-    rgba(255, 255, 255, 0.35),
-    transparent
-  );
-  animation: pipe-flow 2.8s linear infinite;
-}
-
-@keyframes pipe-flow {
-  to {
-    transform: translateY(330%);
+@keyframes pipe-shine {
+  0% {
+    background-position:
+      110% 110%,
+      0 0;
+  }
+  22% {
+    background-position:
+      -10% -10%,
+      0 0;
+  }
+  100% {
+    background-position:
+      -10% -10%,
+      0 0;
   }
 }
 
-.pipe-flange {
-  width: 72px;
-  height: 22px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--splash) 42%, black),
-    var(--splash) 38%,
-    color-mix(in srgb, var(--splash) 70%, white) 50%,
-    var(--splash) 62%,
-    color-mix(in srgb, var(--splash) 42%, black)
-  );
-  border-top: 1px solid rgba(0, 0, 0, 0.4);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .pipe-body::after {
+  .ascii-pipe {
     animation: none;
   }
 }

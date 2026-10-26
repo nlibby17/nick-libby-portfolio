@@ -23,7 +23,6 @@ export const projects = [
     ],
     lede: "One state, every store, one route.",
     backdrop: "sprinkles",
-    flankCups: true,
     video: {
       heading: "Watch",
       body: "The full route, drawn stop by stop.",
@@ -43,7 +42,7 @@ export const projects = [
         },
         {
           title: "Checked by hand",
-          body: "Listings were compared against each other, duplicates merged, and doubtful pins checked one by one before the route was drawn. A listing had to prove itself; a pin on a map was not enough. The judgment calls were logged as they were made.",
+          body: "Listings were compared across sources, duplicates merged, and pins checked one by one before the route was drawn. A listing only joined the route once another source confirmed it. The judgment calls were logged as they were made.",
         },
         {
           title: "The solve",
