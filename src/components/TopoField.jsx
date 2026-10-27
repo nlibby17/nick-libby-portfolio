@@ -57,12 +57,21 @@ function hexRgb(hex) {
 // A cell's color at a boost level: brightened and shifted
 // toward its own family's light tone (gold for warm cells,
 // index blue for ocean cells), scaled by the level's share
-// of full boost.
+// of full boost. The family test keys on green over red:
+// the converter's coarse blue quantization (four levels)
+// zeroes the blue channel of diluted bathymetry, leaving
+// dark teal-green cells whose blue reads zero. Those are
+// ocean all the same, and keying on blue over red sent
+// them to the gold target on the live page (Nick's catch,
+// Oct 27, 2026). Warm land colors always carry red at or
+// above green, so green over red separates the families
+// cleanly.
 function boostColor(col, lvl) {
   const t = lvl / LEVELS;
   const [r, g, b] = hexRgb(col);
-  const target = b > r ? SEA : GOLD;
-  const warm = (b > r ? 0.55 : 0.7) * t;
+  const cool = g > r;
+  const target = cool ? SEA : GOLD;
+  const warm = (cool ? 0.55 : 0.7) * t;
   const bright = 1 + 0.5 * t;
   const mix = (c, targetC) =>
     Math.min(255, Math.round((c + (targetC - c) * warm) * bright));
