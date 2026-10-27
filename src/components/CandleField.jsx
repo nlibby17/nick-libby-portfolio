@@ -26,6 +26,14 @@ import { bucket } from "../lib/glyphAtlas.js";
     is hidden at its post by its own glyph drawn in black
     at partial alpha, never by a rectangle.
 
+  The pointer effects are mouse and pen only (Nick's
+  mobile fix, Oct 27, 2026): the listener fed on every
+  pointer type, so touch scrolling kept handing it fresh
+  points, the flare and the springs chased the scroll, and
+  the field tore itself up on phones. Touch devices get
+  the still sky and the timed swipe, nothing that follows
+  a finger.
+
   Reduced motion: the still sky only.
 */
 const CELL_ASPECT = 0.6;
@@ -235,6 +243,7 @@ export default function CandleField({ opacity = 0.6 }) {
       raf = requestAnimationFrame(loop);
     }
     const onMove = (e) => {
+      if (e.pointerType === "touch") return;
       const rect = stage.getBoundingClientRect();
       pointer.x = e.clientX - rect.left;
       pointer.y = e.clientY - rect.top;
@@ -243,7 +252,8 @@ export default function CandleField({ opacity = 0.6 }) {
     const onLeave = () => {
       pointer.active = false;
     };
-    if (!reduced) {
+    const finePointer = window.matchMedia("(pointer: fine)").matches;
+    if (!reduced && finePointer) {
       window.addEventListener("pointermove", onMove, { passive: true });
       document.documentElement.addEventListener("pointerleave", onLeave);
       window.addEventListener("blur", onLeave);
