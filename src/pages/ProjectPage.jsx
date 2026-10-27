@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import VideoEmbed from "../components/VideoEmbed.jsx";
 import StockDemo from "../components/StockDemo.jsx";
-import SprinkleField from "../components/SprinkleField.jsx";
+import TopoField from "../components/TopoField.jsx";
 import CandleField from "../components/CandleField.jsx";
 import PortalFlank from "../components/PortalFlank.jsx";
 import AsciiPipe from "../components/AsciiPipe.jsx";
@@ -95,9 +95,9 @@ export default function ProjectPage({ project, onNavigate }) {
       className={`page project-page${project.backdrop ? " has-backdrop" : ""}`}
       style={{ "--splash": project.splash }}
     >
-      {project.backdrop === "sprinkles" && (
+      {project.backdrop === "topo" && (
         <div className="project-bg" aria-hidden="true">
-          <SprinkleField />
+          <TopoField />
         </div>
       )}
       {project.backdrop === "portals" && (

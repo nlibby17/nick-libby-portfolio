@@ -21,7 +21,7 @@ export const projects = [
       { value: "2,356.9", label: "miles" },
       { value: "86.1", label: "driving hours" },
     ],
-    backdrop: "sprinkles",
+    backdrop: "topo",
     video: {
       heading: "Watch",
       body: "The full route, drawn stop by stop.",
