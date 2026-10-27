@@ -221,10 +221,23 @@ a {
   z-index: 1;
 }
 
-.site-nav,
 .site-footer {
   position: relative;
   z-index: 1;
+}
+
+/* Layer order at the app level (bundle fix, Oct 27, 2026):
+   a project page wraps its whole subtree in a stacking
+   context at z-index 1 that lands after the nav in the
+   document, so the topo and candle backdrops painted over
+   the header band and dimmed the brand and the links on
+   those two pages (Nick's catch). The nav is chrome and
+   rides above every page layer. The footer stays at 1,
+   where document order keeps it above the backdrops, and
+   its click-through rule below handles the cube. */
+.site-nav {
+  position: relative;
+  z-index: 30;
 }
 
 /* The real cup (Nick's spec, Oct 25, 2026): converted photoreal
@@ -623,6 +636,16 @@ body {
   text-align: center;
   max-width: var(--page-width);
   margin: 0 auto;
+  /* Click-through except on the links themselves: the
+     footer box used to win hit testing over the Portal
+     page's cube layer wherever the cube rested inside the
+     footer band, leaving it visible and ungrabbable at
+     the bottom of the page (Nick's catch, Oct 27, 2026). */
+  pointer-events: none;
+}
+
+.site-footer a {
+  pointer-events: auto;
 }
 
 .site-footer .links {
