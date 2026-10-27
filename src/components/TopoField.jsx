@@ -2,15 +2,23 @@ import { useEffect, useRef } from "react";
 import topoGrid from "../assets/ma-topo-grid.json";
 
 /*
-  TopoField: the Dunkin project page's backdrop, second
-  generation (Nick, Oct 27, 2026). The sprinkle field read
-  well but sat in a different medium from the ASCII art
-  everywhere else on the page, so the backdrop is now the
-  project itself, drawn in the site's own fabric: a
-  topographic contour map of Massachusetts, generated to
-  spec (orange contours, gold index lines, solid black),
-  then run through tools/ascii-converter at 440 columns,
-  fine ramp, peak sampling, so the thin lines survive.
+  TopoField: the Dunkin project page's backdrop (Nick,
+  Oct 27, 2026). The sprinkle field read well but sat in a
+  different medium from the ASCII art everywhere else on
+  the page, so the backdrop is now the project itself,
+  drawn in the site's own fabric: a topographic contour
+  map of Massachusetts and its region, generated to a
+  three-color spec Nick approved (Massachusetts in amber
+  gold, the surrounding states in bronze, the Atlantic in
+  chart blue bathymetry, all on solid black), then run
+  through tools/ascii-converter at 440 columns, fine ramp,
+  peak sampling, gamma 1.4 and color gain 0.85 so the
+  dense bright blocks keep their line texture and the
+  gold lands on the approved amber. Field brightness is
+  0.72, lifted from 0.5 on Nick's live review of v3.65.
+  The first-generation single-state map (grid D) ran in
+  v3.65 and lives in stage2-research/topo/ with the rest
+  of the trail.
 
   Rendering follows the WindGrass discipline: ONE canvas,
   an offscreen base stamped once from pre-rendered glyph
@@ -19,8 +27,11 @@ import topoGrid from "../assets/ma-topo-grid.json";
   The bulge (Nick's idea, behavior approved Oct 27, 2026):
   a raised-relief feel under the cursor. Inside a soft
   radius the glyphs step UP the fine ramp toward heavier
-  characters and their color warms toward bright gold.
-  The map never moves, so the coastline stays rock steady.
+  characters and their color brightens within its own
+  family: warm cells warm toward bright gold, ocean cells
+  lighten toward the index blue, so the bulge never
+  repaints one region in another region's color. The map
+  never moves, so the coastline stays rock steady.
   Attack is quick, settle-back runs about half a second,
   and there is no trail. Desktop-class pointers on wide
   screens only; touch, narrow screens, and reduced motion
@@ -33,6 +44,7 @@ const CELL_ASPECT = 0.6;
 const RAMP_FINE =
   " .'`^\\\",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
 const GOLD = [232, 201, 93]; // --gold-bright #e8c95d
+const SEA = [74, 144, 171]; // chart index blue #4a90ab
 const RADIUS = 160;
 const LEVELS = 7; // boost quantize steps, 0 is rest
 const BG = "#0a0a09";
@@ -42,19 +54,22 @@ function hexRgb(hex) {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-// A cell's color at a boost level: warmed toward gold and
-// brightened, both scaled by the level's share of full.
+// A cell's color at a boost level: brightened and shifted
+// toward its own family's light tone (gold for warm cells,
+// index blue for ocean cells), scaled by the level's share
+// of full boost.
 function boostColor(col, lvl) {
   const t = lvl / LEVELS;
   const [r, g, b] = hexRgb(col);
-  const warm = 0.7 * t;
+  const target = b > r ? SEA : GOLD;
+  const warm = (b > r ? 0.55 : 0.7) * t;
   const bright = 1 + 0.5 * t;
-  const mix = (c, gold) =>
-    Math.min(255, Math.round((c + (gold - c) * warm) * bright));
-  return `rgb(${mix(r, GOLD[0])},${mix(g, GOLD[1])},${mix(b, GOLD[2])})`;
+  const mix = (c, targetC) =>
+    Math.min(255, Math.round((c + (targetC - c) * warm) * bright));
+  return `rgb(${mix(r, target[0])},${mix(g, target[1])},${mix(b, target[2])})`;
 }
 
-export default function TopoField({ opacity = 0.5 }) {
+export default function TopoField({ opacity = 0.72 }) {
   const ref = useRef(null);
 
   useEffect(() => {
