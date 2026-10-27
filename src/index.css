@@ -77,34 +77,9 @@ a {
   margin: 1.25rem auto;
 }
 
-.btn {
-  display: inline-block;
-  padding: 0.65rem 1.6rem;
-  border: 1px solid var(--gold);
-  border-radius: 0;
-  color: var(--gold-bright);
-  background: transparent;
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.btn:hover {
-  background: var(--gold);
-  color: #0a0a09;
-}
-
-.btn-solid {
-  background: var(--gold);
-  color: #0a0a09;
-}
-
-.btn-solid:hover {
-  background: var(--gold-bright);
-}
+/* The .btn styles that used to sit here dressed the hero
+   jumper buttons, retired Oct 27, 2026. Nothing on the
+   site renders a .btn anymore. */
 
 /* ---------- nav ---------- */
 
@@ -268,14 +243,6 @@ a {
    keep that from ever producing a horizontal scrollbar. */
 body {
   overflow-x: clip;
-}
-
-.hero .cta {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 2rem;
-  flex-wrap: wrap;
 }
 
 /* ---------- project cards ---------- */
@@ -618,7 +585,10 @@ body {
   margin: 0 auto;
   padding: 1rem 1.5rem 3rem;
   text-align: center;
-  color: var(--ink-dim);
+  /* Full ink, not ink-dim: the bio sits over the busy
+     center of the sun field and the dimmer tone washed
+     out against it (Nick's catch, Oct 27, 2026). */
+  color: var(--ink);
   font-size: 1.1rem;
 }
 
@@ -636,32 +606,13 @@ body {
   text-align: center;
   max-width: var(--page-width);
   margin: 0 auto;
-  /* Click-through except on the links themselves: the
-     footer box used to win hit testing over the Portal
-     page's cube layer wherever the cube rested inside the
-     footer band, leaving it visible and ungrabbable at
-     the bottom of the page (Nick's catch, Oct 27, 2026). */
+  /* Click-through: the footer box used to win hit testing
+     over the Portal page's cube layer wherever the cube
+     rested inside the footer band, leaving it visible and
+     ungrabbable at the bottom of the page (Nick's catch,
+     Oct 27, 2026). The footer carries no links since the
+     same day's header move, so nothing in it needs clicks. */
   pointer-events: none;
-}
-
-.site-footer a {
-  pointer-events: auto;
-}
-
-.site-footer .links {
-  display: flex;
-  gap: 2rem;
-  justify-content: center;
-  margin: 0.8rem 0;
-  flex-wrap: wrap;
-}
-
-.site-footer .links a {
-  font-family: var(--font-mono);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-size: 0.9rem;
-  text-decoration: none;
 }
 
 .site-footer .fine {
@@ -862,6 +813,21 @@ body {
 
   .site-nav .links {
     gap: 1rem;
+  }
+
+  /* Four links since LinkedIn joined the header (Oct 27,
+     2026): the single row no longer fits phone widths at
+     full size, so the links take a full-width row of their
+     own under the brand instead of shrinking to micro
+     type or clipping the last link off the edge. */
+  .site-nav {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  .site-nav .links {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .site-nav .links a {

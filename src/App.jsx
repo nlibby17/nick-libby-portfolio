@@ -46,21 +46,6 @@ function Nav({ onNavigate }) {
         >
           GitHub
         </a>
-      </div>
-    </nav>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="site-footer" id="contact">
-      <p className="ornament" aria-hidden="true">
-        ◆ ◆ ◆
-      </p>
-      <div className="links">
-        <a href="https://github.com/nlibby17" target="_blank" rel="noreferrer">
-          GitHub
-        </a>
         <a
           href="https://www.linkedin.com/in/nicholas-libby-485aba162"
           target="_blank"
@@ -69,6 +54,20 @@ function Footer() {
           LinkedIn
         </a>
       </div>
+    </nav>
+  );
+}
+
+function Footer() {
+  // The GitHub and LinkedIn links that used to live here
+  // moved into the header on Oct 27, 2026 (Nick's call: the
+  // small footer text links were too easy to miss). The
+  // footer is now a closing ornament and nothing more.
+  return (
+    <footer className="site-footer">
+      <p className="ornament" aria-hidden="true">
+        ◆ ◆ ◆
+      </p>
     </footer>
   );
 }
@@ -83,7 +82,7 @@ function Landing({ onNavigate }) {
       </div>
       <main className="landing-main">
         <ErrorBoundary>
-          <Hero onNavigate={onNavigate} />
+          <Hero />
         </ErrorBoundary>
         <section className="cards" id="projects">
         {projects.map((p) => (
