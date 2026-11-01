@@ -1,5 +1,6 @@
 import swordsGrid from "../assets/swords-grid.json";
 import portalGrid from "../assets/portal-grid.json";
+import bikeGrid from "../assets/bike-grid.json";
 
 /*
   The orbit ring's icon registry (Nick's modularity rule,
@@ -24,6 +25,14 @@ export const ICON_REGISTRY = [
     kind: "cup",
     seed: 133233,
     haloTint: "#e6cf9e",
+  },
+  {
+    id: "cyclistic",
+    label: "Cyclistic Capstone",
+    kind: "grid",
+    grid: bikeGrid,
+    seed: 6007,
+    haloTint: "#d9dee3",
   },
   {
     id: "portal",

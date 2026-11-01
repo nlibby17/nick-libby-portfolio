@@ -69,6 +69,128 @@ export const projects = [
     ],
   },
   {
+    slug: "cyclistic-capstone",
+    title: "Cyclistic Capstone",
+    cardType: "stat",
+    splash: "var(--splash-cyclistic)",
+    featured: true,
+    wide: true,
+    tagline:
+      "A full year of Chicago bike-share trips, 6 million rides, cleaned in Python and read in Power BI",
+    stats: [
+      { value: "6,007,212", label: "rides analyzed" },
+      { value: "12", label: "months of data" },
+      { value: "1.5x", label: "longer casual rides" },
+    ],
+    lede: "How annual members and casual riders use the same Chicago bike-share system differently, answered from the system's own trip records.",
+    backdrop: "route",
+    pipeTone: "silver",
+    hero: {
+      heading: "The dashboard",
+      body: "The finished Power BI dashboard. Two pages, eight views, and every chart title is a finding, so the dashboard reads as the answer before the write-up begins.",
+      src: "/images/cyclistic/00-overview-page.png",
+      alt: "Power BI dashboard overview page: 6,007,212 total rides split between members and casual riders, average ride length by group, rides by month, rides by day of week, and the weekday versus weekend split",
+      caption:
+        "Overview page. Members make up about two thirds of all rides; casual riders are the weekend's near-half.",
+    },
+    pipelineAfter: 1,
+    pipeline: {
+      heading: "How it was built",
+      steps: [
+        {
+          title: "Twelve monthly files",
+          body: "Chicago's trip data is published one month at a time. The year from October 2025 through September 2026 arrived as twelve separate files holding 6,171,785 rows between them, and they were never merged by hand.",
+        },
+        {
+          title: "One Python script",
+          body: "A single pandas script reads the twelve files one at a time, applies the cleaning rules, and appends to one cleaned dataset, logging every row it drops and why. It dropped 164,573 rows (2.67 percent), every one of them accounted for in the cleaning log.",
+        },
+        {
+          title: "The dashboard",
+          body: "The cleaned 6,007,212 rides load into Power BI, where two dashboard pages take the question from five angles: volume, ride length, timing, equipment, and stations.",
+        },
+        {
+          title: "Recommendations",
+          body: "The patterns resolve into three recommendations for converting casual riders into annual members, the goal the analysis was built to serve. They close this page.",
+        },
+      ],
+    },
+    sections: [
+      {
+        heading: "The question",
+        body: "Cyclistic, a Chicago bike-share company with more than 5,800 bicycles across 600 docking stations, has concluded that its growth depends on converting casual riders into annual members. Before the marketing team could design that campaign, it needed clear evidence of how the two groups actually ride differently. The business task: use the previous twelve months of trip data to identify the differences, and turn them into a conversion marketing strategy.",
+      },
+      {
+        heading: "What the data showed",
+        body: "Members ride like commuters. Their volume peaks Tuesday through Thursday, holds steady across the year, and averages 12.2 minutes a trip. Casual riders ride for leisure: their trips average 18.2 minutes, run longest on Sundays at 21.1 minutes, peak on Saturdays, and make up about 46 percent of all weekend rides against about 31 percent on weekdays. Casual volume collapses in the January cold while member volume only dips. Both groups reach for e-bikes most of the time (about 70 percent of all rides, and about 74 percent of casual rides), and casual rides start at lakefront attractions: Navy Pier, Millennium Park, the Shedd Aquarium, and the DuSable Lake Shore Drive corridor. One line covers it: members use the system to get to work, and casual riders use it to enjoy the city.",
+      },
+      {
+        heading: "The dashboard, view by view",
+        body: "The overview page's four charts, at reading size. The dashboard itself sits at the top of this page.",
+        images: [
+          {
+            src: "/images/cyclistic/01-avg-ride-length.png",
+            alt: "Bar chart: average ride length, casual riders 18.2 minutes against members 12.2 minutes",
+            caption: "Casual rides run about 1.5x longer than member rides.",
+          },
+          {
+            src: "/images/cyclistic/02-rides-by-month.png",
+            alt: "Line chart of rides by month for both groups: a late-summer peak and a January trough, deeper for casual riders",
+            caption:
+              "Both groups peak in late summer and bottom out in January; the casual line falls much further.",
+          },
+          {
+            src: "/images/cyclistic/03-rides-by-day-of-week.png",
+            alt: "Bar chart of rides by day of week: members peak Tuesday to Thursday, casual riders peak on Saturday",
+            caption: "Members peak midweek, casual riders peak on Saturday.",
+          },
+          {
+            src: "/images/cyclistic/04-weekend-vs-weekday.png",
+            alt: "Bar chart of weekday against weekend rides by group",
+            caption:
+              "Casual riders make up nearly half of all weekend rides: about 46 percent, against about 31 percent on weekdays.",
+          },
+        ],
+      },
+      {
+        heading: "The details page",
+        body: "The second page takes equipment, daily ride length, and the geography of casual starts.",
+        images: [
+          {
+            src: "/images/cyclistic/05-rideable-type.png",
+            alt: "Bar chart of rides by bicycle type: e-bikes dominate for both groups",
+            caption:
+              "Both groups reach for e-bikes most of the time: about 70 percent of all rides, 74 percent of casual rides.",
+          },
+          {
+            src: "/images/cyclistic/06-avg-length-by-day.png",
+            alt: "Bar chart of average ride length by day of week: casual rides are longer on all seven days and longest on Sundays",
+            caption:
+              "Casual rides are longest on Sundays and Saturdays, and longer than member rides on all seven days.",
+          },
+          {
+            src: "/images/cyclistic/07-top-casual-stations.png",
+            alt: "Bar chart of the top ten casual start stations, led by Navy Pier, DuSable Lake Shore Drive and Monroe Street, and Michigan Avenue and Oak Street",
+            caption:
+              "Casual rides start at lakefront attractions: Navy Pier (about 49K rides), the DuSable Lake Shore Drive corridor, Millennium Park, the Shedd Aquarium. Counts are read from the chart axis.",
+          },
+        ],
+      },
+      {
+        heading: "Recommendations",
+        body: "1. Sell membership where casual rides begin: conversion offers at the top casual start stations (Navy Pier, Millennium Park, the Shedd Aquarium, the lakefront corridor) and in the app at the end of casual weekend rides, when the pitch meets the rider at the moment of the experience. 2. Run the main campaign in early spring, as casual riders come back and before the bulk of the busy season: a membership bought in early spring covers the whole riding season, and winter spending on this audience is wasted. 3. Pitch the pattern casual riders already live (long weekend rides, e-bikes, the lakefront) as a leisure membership, not a commuter product sold to people who do not commute.",
+      },
+      {
+        heading: "Code",
+        body: "The cleaning script, the full report, and the cleaning log live in the project repository. The dashboard file itself runs 368 MB, over GitHub's file limit, so the repository carries its output instead: every chart, as shown on this page.",
+        link: {
+          label: "github.com/nlibby17/cyclistic-capstone",
+          href: "https://github.com/nlibby17/cyclistic-capstone",
+        },
+      },
+    ],
+  },
+  {
     slug: "stock-research-assistant",
     title: "Stock Research Assistant",
     cardType: "tool",

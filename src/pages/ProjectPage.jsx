@@ -4,16 +4,18 @@ import StockDemo from "../components/StockDemo.jsx";
 import TopoField from "../components/TopoField.jsx";
 import CandleField from "../components/CandleField.jsx";
 import PortalFlank from "../components/PortalFlank.jsx";
+import RouteField from "../components/RouteField.jsx";
 import AsciiPipe from "../components/AsciiPipe.jsx";
 
 /*
   ProjectPage: one centered template for every project,
   driven entirely by src/data/projects.js. Optional fields
   layer on per project without disturbing the others: a
-  video block under the stats, a pipeline of build steps
-  rendered between sections (pipelineAfter counts the
-  sections it follows), and a named ASCII backdrop field
-  behind the content.
+  video block under the stats, a hero image in the same
+  slot for projects whose artifact is a picture rather
+  than a film, a pipeline of build steps rendered between
+  sections (pipelineAfter counts the sections it follows),
+  and a named ASCII backdrop field behind the content.
 */
 export default function ProjectPage({ project, onNavigate }) {
   // The companion cube loads lazily, and only once the
@@ -67,14 +69,17 @@ export default function ProjectPage({ project, onNavigate }) {
         {project.pipeline.steps.map((step, i) => (
           <div className="pipe-step" key={step.title}>
             <div className="pipe-run" aria-hidden="true">
-              <AsciiPipe variant={i === 0 ? "down" : "double"} />
+              <AsciiPipe
+                variant={i === 0 ? "down" : "double"}
+                tone={project.pipeTone}
+              />
             </div>
             <h3 className="pipe-title">{step.title}</h3>
             <p>{step.body}</p>
           </div>
         ))}
         <div className="pipe-run pipe-run--end" aria-hidden="true">
-          <AsciiPipe variant="double" />
+          <AsciiPipe variant="double" tone={project.pipeTone} />
         </div>
       </div>
     </section>
@@ -108,6 +113,11 @@ export default function ProjectPage({ project, onNavigate }) {
       {project.backdrop === "candles" && (
         <div className="project-bg project-bg--candles" aria-hidden="true">
           <CandleField />
+        </div>
+      )}
+      {project.backdrop === "route" && (
+        <div className="project-bg" aria-hidden="true">
+          <RouteField />
         </div>
       )}
       <div className="project-content">
@@ -152,6 +162,21 @@ export default function ProjectPage({ project, onNavigate }) {
               label={project.video.label}
               posterAlt={project.video.posterAlt}
             />
+          </section>
+        )}
+
+        {project.hero && (
+          <section>
+            <h2>{project.hero.heading}</h2>
+            <p>{project.hero.body}</p>
+            <figure style={{ margin: 0 }}>
+              <img
+                className="shot"
+                src={project.hero.src}
+                alt={project.hero.alt}
+              />
+              <figcaption className="caption">{project.hero.caption}</figcaption>
+            </figure>
           </section>
         )}
 

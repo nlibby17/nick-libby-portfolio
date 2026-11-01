@@ -40,7 +40,23 @@ function rgb(hex) {
   return hexCache.get(hex);
 }
 
-export default function AsciiPipe({ variant = "double" }) {
+// The pipes' palette is baked warm from the orange source
+// photo. A project whose splash is not warm (Cyclistic's
+// aluminum, Nov 1, 2026) passes tone "silver": each cell's
+// color is remapped to the site's silver staircase at the
+// same luminance before the sweep boost, the same formula
+// the bike icon's palette was forced to, so the metal
+// matches across the page.
+function silverize(r, g, b) {
+  const v = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return [
+    Math.min(255, Math.round(v * 0.92)),
+    Math.min(255, Math.round(v * 0.96)),
+    Math.min(255, Math.round(v * 1.02)),
+  ];
+}
+
+export default function AsciiPipe({ variant = "double", tone = "warm" }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -71,19 +87,19 @@ export default function AsciiPipe({ variant = "double" }) {
         for (let x = 0; x < grid.cols; x += 1) {
           const ci = rowCells[x];
           if (ci < 0) continue;
-          let fill = grid.palette[ci];
+          let [r, g, b] = rgb(grid.palette[ci]);
+          if (tone === "silver") [r, g, b] = silverize(r, g, b);
           if (band >= 0) {
             const s = (x / grid.cols + y / grid.rows) / 2;
             const boost = Math.max(0, 1 - Math.abs(s - band) / 0.14);
             if (boost > 0) {
-              const [r, g, b] = rgb(fill);
               const t = boost * 0.8;
-              fill = `rgb(${Math.round(r + (255 - r) * t)},${Math.round(
-                g + (255 - g) * t
-              )},${Math.round(b + (255 - b) * t)})`;
+              r = Math.round(r + (255 - r) * t);
+              g = Math.round(g + (255 - g) * t);
+              b = Math.round(b + (255 - b) * t);
             }
           }
-          ctx.fillStyle = fill;
+          ctx.fillStyle = `rgb(${r},${g},${b})`;
           ctx.fillText(line[x], x * cellW, y * cellH);
         }
       }
@@ -110,7 +126,7 @@ export default function AsciiPipe({ variant = "double" }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [variant]);
+  }, [variant, tone]);
 
   return <canvas ref={canvasRef} className="ascii-pipe" aria-hidden="true" />;
 }
