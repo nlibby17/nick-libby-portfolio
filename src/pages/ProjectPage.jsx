@@ -97,7 +97,7 @@ export default function ProjectPage({ project, onNavigate }) {
 
   return (
     <main
-      className={`page project-page${project.backdrop ? " has-backdrop" : ""}`}
+      className={`page project-page${project.backdrop ? ` has-backdrop backdrop-${project.backdrop}` : ""}`}
       style={{ "--splash": project.splash }}
     >
       {project.backdrop === "topo" && (
@@ -168,7 +168,7 @@ export default function ProjectPage({ project, onNavigate }) {
         {project.hero && (
           <section>
             <h2>{project.hero.heading}</h2>
-            <p>{project.hero.body}</p>
+            {project.hero.body && <p>{project.hero.body}</p>}
             <figure style={{ margin: 0 }}>
               <img
                 className="shot"

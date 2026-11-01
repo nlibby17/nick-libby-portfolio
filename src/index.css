@@ -679,6 +679,13 @@ body {
   margin-top: 0.5rem;
 }
 
+/* On the Cyclistic page the backdrop is a busy silver map,
+   and captions at ink-faint wash out against it (Nick's
+   catch, Nov 1, 2026). There, captions sit at full ink. */
+.backdrop-route .caption {
+  color: var(--ink);
+}
+
 .page .backlink {
   font-family: var(--font-mono);
   font-size: 0.9rem;

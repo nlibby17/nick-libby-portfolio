@@ -43,16 +43,22 @@ function rgb(hex) {
 // The pipes' palette is baked warm from the orange source
 // photo. A project whose splash is not warm (Cyclistic's
 // aluminum, Nov 1, 2026) passes tone "silver": each cell's
-// color is remapped to the site's silver staircase at the
-// same luminance before the sweep boost, the same formula
-// the bike icon's palette was forced to, so the metal
-// matches across the page.
+// color is remapped to silver at the same luminance before
+// the sweep boost. The first silver pass matched luminance
+// exactly and the pipes dissolved into the page's own
+// silver map backdrop (Nick's catch, Nov 1, 2026), so the
+// silver curve is LIFTED: a floor under the shadows and a
+// gamma that pushes mid-tones up, giving the pipes real
+// presence against the backdrop while keeping their
+// shading steps in order.
 function silverize(r, g, b) {
-  const v = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  const v = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  const lifted = 0.22 + 0.78 * Math.pow(v, 0.75);
+  const base = lifted * 255;
   return [
-    Math.min(255, Math.round(v * 0.92)),
-    Math.min(255, Math.round(v * 0.96)),
-    Math.min(255, Math.round(v * 1.02)),
+    Math.min(255, Math.round(base * 0.92)),
+    Math.min(255, Math.round(base * 0.96)),
+    Math.min(255, Math.round(base * 1.02)),
   ];
 }
 

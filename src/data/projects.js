@@ -86,8 +86,7 @@ export const projects = [
     backdrop: "route",
     pipeTone: "silver",
     hero: {
-      heading: "The dashboard",
-      body: "The finished Power BI dashboard. Two pages, eight views, and every chart title is a finding, so the dashboard reads as the answer before the write-up begins.",
+      heading: "Dashboard",
       src: "/images/cyclistic/00-overview-page.png",
       alt: "Power BI dashboard overview page: 6,007,212 total rides split between members and casual riders, average ride length by group, rides by month, rides by day of week, and the weekday versus weekend split",
       caption:
@@ -99,7 +98,7 @@ export const projects = [
       steps: [
         {
           title: "Twelve monthly files",
-          body: "Chicago's trip data is published one month at a time. The year from October 2025 through September 2026 arrived as twelve separate files holding 6,171,785 rows between them, and they were never merged by hand.",
+          body: "Chicago's trip data is published one month at a time. The year from October 2025 through September 2026 arrived as twelve separate files holding 6,171,785 rows between them.",
         },
         {
           title: "One Python script",
@@ -111,7 +110,7 @@ export const projects = [
         },
         {
           title: "Recommendations",
-          body: "The patterns resolve into three recommendations for converting casual riders into annual members, the goal the analysis was built to serve. They close this page.",
+          body: "The patterns resolve into three recommendations for converting casual riders into annual members. Offers where casual rides begin, a campaign in early spring, a leisure-first pitch.",
         },
       ],
     },
